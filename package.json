@@ -1,0 +1,44 @@
+{
+  "name": "synra-docs",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.15.1",
+  "description": "The Synra website and documentation, at https://synra-app.dev",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "check": "pnpm check:structure && pnpm check:schema && pnpm check:public",
+    "check:structure": "esno scripts/check-structure.ts",
+    "check:schema": "esno scripts/check-schema.ts",
+    "check:public": "esno scripts/check-public-content.ts",
+    "translate": "esno scripts/scaffold-translation.ts",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "typecheck": "vue-tsc --noEmit",
+    "ready": "pnpm lint && pnpm typecheck && pnpm check",
+    "prepare": "simple-git-hooks"
+  },
+  "nano-staged": {
+    "*.{ts,mts,vue,md}": "pnpm exec eslint --fix"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^9.5.1",
+    "@types/node": "^26.6.4",
+    "eslint": "^10.12.0",
+    "esno": "^4.8.0",
+    "jiti": "^2.7.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "nano-staged": "^0.1.2",
+    "simple-git-hooks": "^2.14.0",
+    "typescript": "^6.0.3",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.43",
+    "vue-tsc": "^3.3.12"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm nano-staged"
+  }
+}

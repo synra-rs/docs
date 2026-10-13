@@ -1,0 +1,21 @@
+# 行尾与编码：文档站必须跨平台一致
+* text=auto eol=lf
+
+*.md text eol=lf
+*.mts text eol=lf
+*.ts text eol=lf
+*.vue text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf
+
+# schema 是公开契约，必须逐字节稳定
+public/schema/** -text
+
+*.md linguist-documentation

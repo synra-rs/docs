@@ -1,0 +1,23 @@
+# 依赖
+node_modules/
+
+# VitePress 构建输出与缓存
+dist/
+.vitepress/cache/
+.vitepress/dist/
+.vitepress/.temp/
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# 日志
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# 冻结摘要保留在 types/frozen/，是要提交的构建元数据

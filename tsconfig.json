@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "preserve",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    /**
+     * `node` for the build-time scripts and the checkers in `scripts/`, which read the filesystem.
+     * No `vite/client`: nothing here uses Vite's own API (`import.meta.env`, `?raw`, `?url`), and
+     * `vite` is a private dependency of `vitepress` rather than a top-level one, so TypeScript
+     * cannot resolve the path anyway.
+     */
+    "types": ["node"],
+
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  },
+  "include": [".vitepress/**/*.ts", ".vitepress/**/*.mts", ".vitepress/**/*.vue"],
+  "exclude": ["dist", "node_modules"]
+}

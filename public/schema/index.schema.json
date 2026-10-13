@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synra-app.dev/schema/index.schema.json",
+  "title": "Synra schema index",
+  "description": "The shape of /schema/index.json. That file is data, not a schema: it lists every JSON Schema Synra publishes so tooling can discover the current version instead of hard-coding a URL.",
+  "type": "object",
+  "required": ["schemas"],
+  "additionalProperties": false,
+  "properties": {
+    "generatedNote": {
+      "type": "string",
+      "description": "A note for anyone who opens the data file directly."
+    },
+    "schemas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "versions"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Short name of the schema, used as the directory in its URL."
+          },
+          "description": {
+            "type": "string",
+            "description": "What this schema validates."
+          },
+          "versions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["version", "url"],
+              "additionalProperties": false,
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": "Version number as it appears in the path, for example `1` for `v1.json`."
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Absolute URL of the schema. This URL is immutable."
+                },
+                "current": {
+                  "type": "boolean",
+                  "description": "True for the version a new plugin should use. Exactly one version should carry it."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

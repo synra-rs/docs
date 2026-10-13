@@ -1,0 +1,88 @@
+# Builds the site and publishes it to GitHub Pages at synra-app.dev.
+#
+# Deployed from `main` only. A pull request runs the checks without publishing, so a broken link or
+# a structural drift between the two languages fails the PR rather than the site.
+#
+# Why GitHub Actions rather than a Pages "deploy from branch" setting: the build needs a Node step
+# (VitePress) and a post-build step (dropping the freeze metadata from `dist/`). Deploying from a
+# branch would mean committing `dist/`, which puts generated HTML in review diffs and in git.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege for the deploy, minus `pages: write` and `id-token: write`, which Pages needs.
+# `deploy` is scoped to the push job below; pull requests only read.
+permissions:
+  contents: read
+
+# One deploy at a time, and never cancel one in flight: a half-published site is worse than a
+# slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Lint, type check, and the three content guards run before the build. A schema that changed
+      # structure, a page that leaked a design-document link, or a translation that drifted out of
+      # shape should stop here rather than ship.
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Content checks
+        run: pnpm check
+
+      - name: Build
+        run: pnpm build
+
+      # GitHub Pages runs Jekyll by default, which ignores files and directories beginning with an
+      # underscore. VitePress emits `assets/`, so nothing breaks today -- but `.nojekyll` removes
+      # the whole class of problem for the price of an empty file, and VitePress's own guidance is
+      # to include it.
+      - name: Disable Jekyll
+        run: touch dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

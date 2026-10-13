@@ -1,0 +1,404 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synra-app.dev/schema/manifest/v1.json",
+  "title": "Synra plugin manifest",
+  "description": "The synra.json file at the root of a plugin package. It declares what the plugin is, which artifact implements it, and what it is allowed to do.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": ["schemaVersion", "id", "version", "title", "runtime", "capabilities"],
+
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "The URL of this schema. Editors use it for completion and validation."
+    },
+
+    "schemaVersion": {
+      "const": 1,
+      "description": "Manifest format version. Always 1 for this schema."
+    },
+
+    "id": {
+      "type": "string",
+      "pattern": "^@[a-z0-9][a-z0-9-]{1,38}/[a-z0-9][a-z0-9-]{0,63}$",
+      "description": "The plugin's unique package name, in npm scope form. It must be scoped: `@synra-plugin/chat` for official plugins, `@your-scope/synra-plugin-notes` otherwise. The part after the last slash becomes the wire slug used in event names."
+    },
+
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$",
+      "description": "Semantic version of the plugin."
+    },
+
+    "title": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "Human-readable name, shown in the plugin list. Localizable via `locales`."
+    },
+
+    "description": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "One or two sentences describing what the plugin does. Shown in the plugin list and in search results."
+    },
+
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "description": "Who published this plugin. `id` and `pubkey` are bound together: the same id presenting a different key is treated as untrusted.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Stable publisher identifier."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Display name of the publisher."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The publisher's website."
+        },
+        "pubkey": {
+          "type": "string",
+          "description": "Base64 ed25519 public key. Artifacts signed by the matching private key are accepted; a different key under the same `id` is not."
+        }
+      }
+    },
+
+    "sdk": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Which SDK versions this plugin can run against. The host refuses to activate a plugin whose minimum is above its own version.",
+      "properties": {
+        "min": {
+          "type": "string",
+          "description": "Minimum SDK version, inclusive."
+        },
+        "max": {
+          "type": "string",
+          "description": "Maximum SDK version, exclusive. Omit to allow any newer version."
+        }
+      }
+    },
+
+    "wit": {
+      "type": "string",
+      "pattern": "^synra:plugin@\\d+\\.\\d+\\.\\d+$",
+      "description": "The WIT world version this plugin was built against, for example `synra:plugin@1.0.0`. A plugin built against an incompatible world is rejected at activation, before it runs."
+    },
+
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headless"],
+      "description": "What implements the plugin. `headless` is required; `ui` is optional and adds an interface. There is deliberately no `kind`, `isolation` or `target` field: those are deployment decisions made by the host, not properties of a plugin.",
+      "properties": {
+        "headless": { "$ref": "#/$defs/headlessRuntime" },
+        "ui": { "$ref": "#/$defs/uiRuntime" }
+      }
+    },
+
+    "capabilities": {
+      "type": "array",
+      "description": "Everything the plugin may do. The list is checked twice: at install time against the WIT imports the artifact actually references, and again on every call. A capability the user has not granted is refused even when it appears here.",
+      "items": { "$ref": "#/$defs/capability" }
+    },
+
+    "shareHandlers": {
+      "type": "array",
+      "description": "The kinds of shared content this plugin may be asked to handle. The host pre-filters on these before calling the plugin, so a plugin that does not list a kind is never woken for it.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kinds"],
+        "properties": {
+          "kinds": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "enum": ["text", "url", "file", "image"] },
+            "description": "Share kinds this entry covers."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Shown to the user when choosing between several plugins that can handle the same share."
+          }
+        }
+      }
+    },
+
+    "actions": {
+      "type": "array",
+      "description": "Named operations the plugin exposes. Other plugins and the plugin's own UI call these by name. The host rejects an invocation whose arguments do not match `args`.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Action name, unique within the plugin."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "What the action does, shown in the UI and to other plugins."
+          },
+          "args": {
+            "type": "object",
+            "description": "JSON Schema for the arguments. Must be an object schema.",
+            "additionalProperties": true
+          },
+          "returns": {
+            "type": "object",
+            "description": "JSON Schema for the return value.",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+
+    "events": {
+      "type": "array",
+      "description": "Events this plugin emits. Each name must live under this plugin's own `_plugin.<slug>.` namespace. Declaring them here is what lets the host check, at install time, that a paired device's copy of the plugin can still understand them.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "payload"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^_plugin\\.[a-z0-9-]+\\.[a-z0-9.-]+$",
+            "description": "Fully qualified event name, starting with `_plugin.<your-slug>.`."
+          },
+          "payload": {
+            "type": "object",
+            "description": "JSON Schema for the event payload. Must be an object schema with `additionalProperties: false`, and every `maxLength` or `maximum` must be bounded.",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+
+    "handles": {
+      "type": "array",
+      "description": "Events this plugin wants to receive. An event that is not listed here is never delivered. Entries may name a built-in event, an event this plugin declares above, or another plugin's event.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Event name. `*` matches one segment and `**` matches one or more, for example `_plugin.chat.*`."
+          },
+          "match": {
+            "type": "object",
+            "description": "Extra conditions a payload must satisfy before the event is delivered. Keys are dotted paths into the payload.",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+
+    "compose": {
+      "type": "array",
+      "description": "Other plugins this one builds on. The host activates dependencies first and refuses to activate this plugin if one is missing, unless the dependency is marked optional.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Plugin id of the dependency."
+          },
+          "version": {
+            "type": "string",
+            "description": "Semver range the dependency must satisfy, for example `^1.0.0`."
+          },
+          "optional": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, a missing dependency degrades the plugin instead of blocking activation."
+          }
+        }
+      }
+    },
+
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Outbound hosts the plugin uses. This mirrors the `network:*` capabilities and exists so the interface can show a readable list at install time rather than a set of capability strings.",
+      "properties": {
+        "outbound": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["host"],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard pattern."
+              },
+              "methods": {
+                "type": "array",
+                "items": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"] },
+                "description": "Allowed HTTP methods. Omit to allow all."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "pages": {
+      "type": "array",
+      "description": "Interface pages this plugin provides. Requires `runtime.ui`.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "title", "path"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Page identifier, unique within the plugin."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Page title shown in navigation and the window title."
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^/",
+            "description": "Route for the page, relative to the plugin's namespace."
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Icon name from the built-in set."
+          }
+        }
+      }
+    },
+
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Resource limits the plugin would like. These are a request, not a guarantee: the host may tighten them according to how much the user trusts the plugin, and will never loosen them beyond its own ceiling.",
+      "properties": {
+        "preferredMemoryMb": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512,
+          "description": "Preferred linear-memory ceiling for the Wasm instance."
+        },
+        "preferredTimeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000,
+          "description": "Preferred per-call time limit."
+        }
+      }
+    },
+
+    "locales": {
+      "type": "object",
+      "description": "Translated titles and descriptions. Keys are BCP 47 language tags. The host picks by the user's locale and falls back to the top-level `title` and `description`.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string", "maxLength": 64 },
+          "description": { "type": "string", "maxLength": 512 }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "headlessRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact"],
+      "description": "The Wasm component that implements the plugin's logic. It runs in the kernel's sandbox and is the only part of a plugin that can act on any device.",
+      "properties": {
+        "artifact": {
+          "type": "string",
+          "description": "Path to the `.wasm` file, relative to the manifest. There is exactly one source for this path: both `synra-plugin verify` and the host's loader read this field."
+        },
+        "maxMemoryMb": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512,
+          "description": "Memory ceiling the plugin requests for this artifact."
+        },
+        "callTimeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000,
+          "description": "Per-call time limit the plugin requests."
+        }
+      }
+    },
+
+    "uiRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "entry"],
+      "description": "The interface bundle. It is served from its own origin inside the host, so it can never reach the host's own pages or talk to the network directly.",
+      "properties": {
+        "artifact": {
+          "type": "string",
+          "description": "Path to the `ui.zip` file, relative to the manifest."
+        },
+        "entry": {
+          "type": "string",
+          "description": "HTML entry point inside the zip, for example `index.html`."
+        },
+        "defaultPage": {
+          "type": "string",
+          "description": "`pages[].key` to open when the plugin's page is requested without one."
+        }
+      }
+    },
+
+    "capability": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cap"],
+          "properties": {
+            "cap": {
+              "type": "string",
+              "description": "A capability in `domain:resource:action` form. `*` matches one segment; `**` matches one or more."
+            },
+            "optional": {
+              "type": "boolean",
+              "default": false,
+              "description": "When true, the plugin still activates if this capability is not granted, and is expected to degrade. When false or absent, a missing grant blocks activation."
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Why the plugin needs this. Shown to the user in the permission prompt."
+            }
+          }
+        }
+      ]
+    }
+  }
+}
