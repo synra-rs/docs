@@ -76,7 +76,7 @@ Adding a field means a new version directory, not an edit to `v1`.
 
 ## Writing style
 
-`.vitepress/writing-style.md` holds the rules for writing pages here — structure over spacing,
+``.vitepress/writing-style.md` holds the rules for writing pages here — structure over spacing,
 which VitePress container to reach for, how the two languages must stay in step, and what not to
 touch when reformatting. It is a working reference, not published content.
 
