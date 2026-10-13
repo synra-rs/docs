@@ -1,0 +1,268 @@
+/**
+ * Generates a structurally-mirrored Chinese stub from an English page.
+ *
+ * Why this exists: `check-structure.ts` requires the two languages to agree on heading levels and
+ * order, and on container types and order, whether or not a page has been translated. That rule is
+ * what keeps a translation from drifting into a different outline. It also means a stub cannot be a
+ * single `# heading` — it has to have the shape of the page it will become.
+ *
+ * So the stub is generated rather than hand-written: same `##`/`###` in the same order, same
+ * containers in the same places, headings translated, body replaced by a note, and
+ * `translated: false` in the frontmatter so the checker skips code and table comparison and
+ * `check-public-content.ts` reports the page as outstanding.
+ *
+ * A scaffolding tool for writing translations, not part of the build. Run it, edit what it produced,
+ * then delete the `translated: false` line.
+ *
+ * Usage: esno scripts/scaffold-translation.ts guide/installation.md
+ *        esno scripts/scaffold-translation.ts --all-untranslated
+ */
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+/** Section directories that hold translatable pages. */
+const SECTIONS = ['guide', 'plugins', 'reference'] as const
+
+/**
+ * Heading translations.
+ *
+ * A flat lookup keyed on the English heading text, deliberately: the whole point is that a human
+ * reads the result and fixes the wording, so an exact map that reports an unknown heading is more
+ * useful than a guess that silently produces something wrong.
+ */
+const HEADING_MAP: Record<string, string> = {
+  // Page titles.
+  'What is Synra': 'Synra 是什么',
+  'Installation': '安装',
+  'Quick Start': '快速上手',
+  'Devices & Pairing': '设备与配对',
+  'Clipboard & Files': '剪切板与文件',
+  'Plugins': '插件',
+  'Troubleshooting': '故障排查',
+  'Your First Plugin': '第一个插件',
+  'The Manifest': 'Manifest',
+  'Project Structure': '目录结构',
+  'Writing the Logic': '编写逻辑',
+  'Building a UI': '编写界面',
+  'Testing': '测试',
+  'Publishing': '发布',
+  'FAQ': '常见问题',
+  'Capabilities': '能力（Capability）',
+  'Built-in Events': '内置事件',
+  'Error Codes': '错误码',
+  'Data Locations': '数据位置',
+  'Platform Support': '平台支持',
+
+  // Second level, in the pages that have one.
+  'The two models': '两种模型',
+  'How the pieces fit': '各部分如何配合',
+  'What Synra is not': 'Synra 不是什么',
+  'Next': '下一步',
+  'Desktop': '桌面端',
+  'Mobile': '移动端',
+  'The command line': '命令行',
+  'System permissions': '系统权限',
+  'Checking it worked': '确认它工作了',
+  'Before you start': '开始之前',
+  '1. Pair the two devices': '1. 配对两台设备',
+  '2. Share something': '2. 分享一些东西',
+  '3. Confirm the target': '3. 确认目标',
+  '4. Watch it happen': '4. 看它发生',
+  'What to try next': '接下来试什么',
+  'Command line equivalent': '等价的命令行',
+  'The fields that matter most': '最关键的几个字段',
+  'Full reference': '完整参考',
+  'Share and receive': '分享与接收',
+  'The action panel': '动作面板',
+  'Capabilities are the host\'s': '能力属于宿主',
+  'Plugins decide what it means': '插件决定它的含义',
+  'The kernel does the moving': '内核负责搬运',
+  'Keep them in step with the code': '让它们与代码保持一致',
+
+  // Code-group labels and heading-shaped code identifiers. Translating these would be wrong, but
+  // they must be present so the map does not report them as unknown.
+  'Android': 'Android',
+  'iOS': 'iOS',
+  'Arch': 'Arch',
+  'Debian / Ubuntu': 'Debian / Ubuntu',
+  '`runtime`': '`runtime`',
+  '`capabilities`': '`capabilities`',
+  '`events` and `handles`': '`events` 与 `handles`',
+}
+
+/** The note that stands in for a body until someone writes the real thing. */
+const STUB_NOTE = [
+  '本页正在撰写中。主题已经确定，说明内容尚未发布。',
+  '',
+  '在它完成之前，它所描述的行为现在就可以访问：',
+  '',
+  '- 命令行可以查询：`synra --help`',
+  '- 内核的契约在 schema 与 `synra-core` 里',
+  '- 这里有不清晰的地方，欢迎在 <https://github.com/synra-rs/docs/issues> 提 issue',
+].join('\n')
+
+/** Reads a `key: value` pair out of YAML frontmatter. */
+function frontmatter(text: string): Record<string, string> {
+  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!match)
+    return {}
+
+  const out: Record<string, string> = {}
+  for (const line of match[1].split(/\r?\n/)) {
+    // A literal space after the colon, not `\s*`: the two overlap, which is what makes a regex
+    // backtrack. No space means no value.
+    const kv = line.match(/^([A-Z][\w-]*): (.*)$/i)
+    if (kv)
+      out[kv[1]] = kv[2].trim()
+  }
+  return out
+}
+
+/** Builds the mirror. Reports headings with no translation. */
+function build(english: string): { text: string, missing: string[] } {
+  const lines = english.split('\n')
+  const out: string[] = []
+  const missing: string[] = []
+
+  // Frontmatter, with `translated: false` inserted before the closing delimiter.
+  const fmEnd = lines.findIndex((line, i) => i > 0 && line.trim() === '---')
+  const fm = lines.slice(0, fmEnd + 1)
+  fm.splice(fm.length - 1, 0, 'translated: false')
+  out.push(...fm, '')
+
+  let index = fmEnd + 1
+  let sawH1 = false
+
+  /**
+   * Fenced code is skipped wholesale. Without this, a fence carrying a label — ```` ```bash [Arch] ````
+   * inside a `code-group` — reads as a level-3 heading, and the mirror picks up structure the
+   * English page does not have.
+   */
+  let inFence = false
+
+  while (index < lines.length) {
+    const line = lines[index]
+
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence
+      index++
+      continue
+    }
+
+    if (inFence) {
+      index++
+      continue
+    }
+
+    // A literal space after the hashes, not `\s+`: the two overlap with `.*`, which is what makes a
+    // regex backtrack. `## heading` is the only form Markdown produces.
+    const heading = line.match(/^(#{1,6}) (.*)$/)
+    if (heading) {
+      const original = heading[2].trim()
+      const translated = HEADING_MAP[original]
+      if (translated === undefined && heading[1].length <= 3)
+        missing.push(original)
+
+      out.push(`${heading[1]} ${translated ?? original}`)
+
+      // The page title gets the stub note. Later headings get nothing: repeating the note under
+      // every heading would be noise.
+      if (!sawH1) {
+        out.push('', STUB_NOTE)
+        sawH1 = true
+      }
+
+      index++
+      continue
+    }
+
+    // Containers are mirrored by type so the structure check sees the same sequence. Their bodies
+    // are dropped along with the rest of the prose.
+    const container = line.match(/^:::\s*(tip|info|warning|danger|details)\b(.*)$/)
+    if (container) {
+      const [, type, rawLabel] = container
+      const label = rawLabel.trim()
+      const translated = HEADING_MAP[label] ?? label
+      out.push('', `::: ${type} ${translated}`, '待补充。', ':::', '')
+
+      index++
+      while (index < lines.length && !/^:::\s*$/.test(lines[index])) index++
+      index++
+      continue
+    }
+
+    index++
+  }
+
+  const text = `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`
+  return { text, missing }
+}
+
+/** Every English page whose Chinese side is missing or still flagged. */
+function untranslated(): string[] {
+  const out: string[] = []
+
+  for (const section of SECTIONS) {
+    const dir = join(root, section)
+    if (!existsSync(dir))
+      continue
+
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith('.md'))
+        continue
+
+      const zhPath = join(root, 'zh', section, name)
+      const needs = !existsSync(zhPath)
+        || frontmatter(readFileSync(zhPath, 'utf8')).translated === 'false'
+      if (needs)
+        out.push(`${section}/${name}`)
+    }
+  }
+
+  return out
+}
+
+const args = process.argv.slice(2)
+const targets = args.includes('--all-untranslated')
+  ? untranslated()
+  : args.filter(a => a.endsWith('.md'))
+
+if (!targets.length) {
+  console.error('usage: esno scripts/scaffold-translation.ts [--all-untranslated | <page.md> …]')
+  process.exit(2)
+}
+
+let written = 0
+const allMissing = new Set<string>()
+
+for (const target of targets) {
+  const enPath = join(root, target)
+  if (!existsSync(enPath)) {
+    console.error(`${target}: no such English page`)
+    process.exitCode = 1
+    continue
+  }
+
+  const { text, missing } = build(readFileSync(enPath, 'utf8'))
+  for (const m of missing) allMissing.add(m)
+
+  const zhPath = join(root, 'zh', target)
+  mkdirSync(dirname(zhPath), { recursive: true })
+  writeFileSync(zhPath, text)
+  written++
+  console.log(`zh/${target}`)
+}
+
+console.log('-'.repeat(60))
+console.log(`${written} stub(s) written`)
+
+if (allMissing.size) {
+  console.log('')
+  console.log('These headings have no translation in HEADING_MAP and were left in English:')
+  for (const m of [...allMissing].sort()) console.log(`  ${m}`)
+  console.log('Add them to HEADING_MAP, then run this script again.')
+}

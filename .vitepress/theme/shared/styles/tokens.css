@@ -1,0 +1,29 @@
+/**
+ * Design tokens.
+ *
+ * Kept deliberately small: the site runs on VitePress's default theme, and a larger token set
+ * would drift from it. These only carry the brand accent and the two surfaces the home page needs.
+ *
+ * Rule for this file: every token must be used by something in `theme/`. A token nobody reads is
+ * a token nobody maintains.
+ */
+
+:root {
+  /* Accent: a cool cyan. Reads as "signal" without competing with the default theme's blue. */
+  --synra-accent: #22d3ee;
+  --synra-accent-strong: #06b6d4;
+  --synra-accent-dim: rgba(34, 211, 238, 0.14);
+
+  /* Terminal surfaces, used by the home page's demo panel. Dark in both themes on purpose: it is
+     a device screen, and a screen does not turn white when the page does. */
+  --synra-term-bg: #0b0f14;
+  --synra-term-fg: #d7e3ea;
+  --synra-term-dim: #6b7d8a;
+  --synra-term-line: rgba(255, 255, 255, 0.08);
+}
+
+.dark {
+  --synra-accent: #22d3ee;
+  --synra-accent-strong: #67e8f9;
+  --synra-accent-dim: rgba(34, 211, 238, 0.18);
+}

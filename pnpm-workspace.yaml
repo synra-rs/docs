@@ -1,0 +1,11 @@
+# Not a workspace — this repository is a single package.
+#
+# The file exists because pnpm 11 reads build-script approvals from here, and it refuses to run
+# `esbuild`'s install script without an explicit decision. VitePress bundles `esbuild`, so without
+# this the build stops with `ERR_PNPM_IGNORED_BUILDS` before VitePress is ever invoked.
+#
+# The sibling projects' workspaces use the same key and style, so there is one convention to
+# remember across repositories rather than one per repository.
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://synra-app.dev/schema/index.schema.json",
+  "generatedNote": "This file is data, not a schema. Its shape is described by index.schema.json.",
+  "schemas": [
+    {
+      "name": "manifest",
+      "description": "The synra.json plugin manifest. Referenced by every plugin's $schema field.",
+      "versions": [
+        {
+          "version": "1",
+          "url": "https://synra-app.dev/schema/manifest/v1.json",
+          "current": true
+        }
+      ]
+    }
+  ]
+}
