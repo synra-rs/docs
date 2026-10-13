@@ -84,4 +84,3 @@ touch when reformatting. It is a working reference, not published content.
 
 MIT
 
-<!-- hook test -->
