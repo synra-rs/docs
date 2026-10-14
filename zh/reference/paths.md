@@ -1,13 +1,67 @@
 ---
-title: 数据位置
+title: Data Locations
 ---
 
 # 数据位置
 
-This page is being written. The subject is settled; the explanation is not published yet.
+Synra 把一切都保存在它运行的机器上。没有账号、没有服务器，也没有要登录的东西。本页说明这些文件在哪
+里，好让备份、问题报告或手动清理能找到它们。
 
-In the meantime, the behaviour it documents is reachable today:
+## 两个根目录
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+一切都放在两个目录里，它们分开是因为**生命周期不同**。
+
+| 根目录 | 装什么 | 能否安全删除 |
+| --- | --- | --- |
+| 数据 | 数据库、密钥、插件、插件存储 | 不能 —— 这就是这套安装本身 |
+| 缓存 | 编译后的插件、目录缓存、日志、崩溃报告 | 能 —— 它会重建 |
+
+::: warning 删掉数据目录会解除所有设备的配对
+密钥就在那里。丢掉它们意味着每台其他设备都要重新配对，因为配对是**两端各持一份的秘密**，而不是任一端
+能重建的记录。
+:::
+
+## 数据目录内部
+
+| 路径 | 装什么 |
+| --- | --- |
+| `db` | 数据库：设备、插件、设置、传输 |
+| `bootstrap/config.json` | 用户改动过的设置 |
+| `keys/` | 本机的身份与配对密钥 |
+| `plugins/<id>/` | 已安装插件的产物与清单 |
+| `plugins/data/` | 插件保存的数据 |
+
+插件保存的数据在插件目录之下、而不是紧挨着它的代码，所以替换一个插件的产物 —— 也就是更新 —— 不会打扰
+它存下来的东西。
+
+## 缓存目录内部
+
+| 路径 | 装什么 |
+| --- | --- |
+| `wasm/` | 编译后的插件组件 |
+| `catalog/` | 下载来的插件目录 |
+| `logs/` | 内核日志 |
+| `diagnostics/` | 导出的诊断包 |
+| `crashes/` | 没能干净退出的那几次运行的报告 |
+
+## 各平台
+
+这两个根目录就是各平台自己的目录，由外壳选定。想换地方的话，用 `--data-dir` 说明。
+
+| 平台 | 数据根目录 |
+| --- | --- |
+| Windows | `%LOCALAPPDATA%\Synra` |
+| macOS | `~/Library/Application Support/Synra` |
+| Linux | `~/.local/share/synra` |
+| Android、iOS | 应用的私有存储 |
+
+::: tip `--data-dir` 指的是**数据目录本身**
+不是它的父目录。把 Synra 指到 `D:\synra-data`，数据库在 `D:\synra-data\db`，而不是
+`D:\synra-data\data\db`。
+:::
+
+## 哪些是你可以搬走的
+
+- **备份**要的是数据目录。缓存在下次启动时会重建。
+- **问题报告**要的是一个诊断包，它包含缓存里的日志与崩溃报告，但**不含密钥**。
+- **干净重装**要删掉两个，代价是每台设备都要重新配对。

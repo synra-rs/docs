@@ -1,13 +1,80 @@
 ---
-title: 内置事件
+title: Built-in Events
 ---
 
 # 内置事件
 
-This page is being written. The subject is settled; the explanation is not published yet.
+事件是内核告诉应用其余部分"发生了什么"的方式。插件会发出事件，内核也会发出自己的，界面则订阅它
+需要绘制的那部分。
 
-In the meantime, the behaviour it documents is reachable today:
+本页是内核自有事件的目录：有哪些、各自携带什么、以及什么时候触发。
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+## 名称
+
+事件名是一个带保留前缀的点号分隔字符串。谁能发出什么由前缀决定 —— 所以前缀不是装饰，它就是规则
+本身。
+
+| 前缀 | 发出者 | 去向 |
+| --- | --- | --- |
+| `_synra.` | 内核 | 内置事件，见下表 |
+| `_plugin.` | 插件 | 挂在发出它的插件命名空间下 |
+| `synra.internal.` | 内核 | 从不离开本进程 |
+
+不在这几个前缀下的名字属于插件自己，且必须在发出它的插件内唯一。
+
+::: info 为什么前缀是**校验**而不是"信任"
+一个发出了 `_synra.device.offline` 的插件，可以让每一台已配对设备上的每一个界面都把某台设备显示为
+离线。前缀正是让这件事**不可能**、而不只是"不鼓励"的东西。
+:::
+
+## 目录
+
+以下是内核自有的。插件无法发出它们，而无论装了哪些插件，界面都会收到它们。
+
+| 名称 | 携带 | 何时 |
+| --- | --- | --- |
+| `_synra.device.changed` | 设备卡片 | 设备出现或状态变化 |
+| `_synra.device.offline` | 设备 id | 已配对设备停止应答 |
+| `_synra.device.renamed` | 设备 id 与新名字 | 用户重命名了设备 |
+| `_synra.pairing.changed` | 配对状态 | 设备被配对或解除配对 |
+| `_synra.share.received` | 分享了什么、来自谁 | 另一台设备向本机分享了东西 |
+| `_synra.intent.completed` | 意图 id 与结果 | 意图成功结束 |
+| `_synra.intent.failed` | 意图 id 与错误 | 意图以失败结束 |
+| `_synra.transfer.completed` | 传输 id 与去向 | 一个文件收完或发完 |
+| `_synra.transfer.failed` | 传输 id 与错误 | 一个传输放弃了 |
+| `_synra.transfer.progress` | 传输 id 与进度 | 传输推进了 |
+| `_synra.clipboard.received` | 收到了什么 | 剪贴板同步送达了内容 |
+| `_synra.plugin.installed` | 插件快照 | 插件被安装 |
+| `_synra.plugin.updated` | 插件快照 | 插件被更新 |
+| `_synra.plugin.uninstalled` | 插件 id | 插件被移除 |
+| `_synra.host.foreground` | 无 | 应用来到前台 |
+| `_synra.host.background` | 无 | 应用退到后台 |
+| `_synra.network.changed` | 新状态 | 网络发生变化 |
+
+::: tip 只订阅你要绘制的
+对大文件而言，`_synra.transfer.progress` 每秒会触发很多次。一个为了更新角标而订阅它的界面，其工作
+量正比于**传输速度**，而不是正比于**用户看到的东西**。
+:::
+
+## 投递与顺序
+
+界面收到的每个事件都带一个序号，而正是这个序号让"缺口"变得可见。
+
+- 序号是**每个内核一份**，不是每个订阅者一份 —— 所以两个窗口对"哪个事件先发生"的看法一致。
+- 小于或等于已见最大值的序号是**重复**。它只被应用一次，其余忽略。
+- 向前跳跃意味着有事件没收到，此时界面重读一次快照，而不是显示一份安静地过时的列表。
+
+::: warning 缺口不会被随后的事件修补
+漏掉的那些已经没了。序号买到的是界面**知道**该重读 —— 没有它，面板照样渲染、数字看着都合理，而其
+中一个是错的。
+:::
+
+## 插件自己的事件
+
+插件在清单里声明它发出的事件，想要它们的界面按声明的名字订阅。有两条规则：
+
+- **名字对它的插件唯一。** 两个插件都发 `status.changed` 就是同一个事件有两种含义，订阅者分不出来。
+- **先声明再发出。** 发出未声明的名字会被拒绝，因为只能靠猜的订阅者，订阅到的是一个可能永远不来的
+  东西。
+
+一个插件如何声明见[清单](/zh/plugins/manifest)，发出事件需要什么见[能力](/zh/reference/capabilities)。

@@ -35,6 +35,36 @@ const SECTIONS = ['guide', 'plugins', 'reference'] as const
  * useful than a guess that silently produces something wrong.
  */
 const HEADING_MAP: Record<string, string> = {
+  // reference/paths.md
+  'The two roots': '两个根目录',
+  'Inside the data directory': '数据目录内部',
+  'Inside the cache directory': '缓存目录内部',
+  'Per platform': '各平台',
+  'Which of it is yours to move': '哪些是你可以搬走的',
+  // reference/platform-matrix.md
+  'What ships': '支持的平台',
+  'How a difference is reported': '差异如何被报告',
+  'What is the same everywhere': '哪些处处相同',
+  'Mobile': '移动端',
+  // reference/capabilities.md
+  'The grammar': '语法',
+  'The ten domains': '十个域',
+  'Patterns and grants': '模式与授予',
+  'What the user sees': '用户看到什么',
+  'What is checked, and when': '检查什么，什么时候检查',
+  // reference/errors.md
+  'How to read a failure': '如何读懂一次失败',
+  'Permissions and policy': '权限与策略',
+  'Devices and links': '设备与链路',
+  'Messages and arguments': '消息与参数',
+  'Transfers': '传输',
+  'Plugins and the runtime': '插件与运行时',
+  'What the user should be told': '应当告诉用户什么',
+  // reference/events.md
+  'Names': '名称',
+  'The catalogue': '目录',
+  'Delivery and order': '投递与顺序',
+  'A plugin\'s own events': '插件自己的事件',
   // Page titles.
   'What is Synra': 'Synra 是什么',
   'Installation': '安装',
