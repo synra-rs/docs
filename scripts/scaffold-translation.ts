@@ -35,6 +35,55 @@ const SECTIONS = ['guide', 'plugins', 'reference'] as const
  * useful than a guess that silently produces something wrong.
  */
 const HEADING_MAP: Record<string, string> = {
+  // plugins/getting-started.md
+  'What you need': '需要什么',
+  'Scaffold it': '生成脚手架',
+  'What you got': '生成了什么',
+  'Build it': '构建',
+  'Check it': '检查',
+  'Try it': '试一试',
+  'Where to go next': '接下来看什么',
+  // plugins/structure.md
+  'The files': '文件',
+  '`manifest.json`': '`manifest.json`',
+  '`Cargo.toml`': '`Cargo.toml`',
+  '`src/lib.rs`': '`src/lib.rs`',
+  'Building it': '构建它',
+  // plugins/authoring.md
+  'What the kernel calls': '内核调用什么',
+  'Calling the host': '调用宿主',
+  'Storage': '存储',
+  'Migrations': '迁移',
+  'Errors': '错误',
+  // plugins/testing.md
+  'Running it': '运行它',
+  'What is checked': '检查了什么',
+  'The failure worth understanding': '值得弄懂的那个失败',
+  'Testing the logic': '测试逻辑',
+  'Before publishing': '发布之前',
+  // plugins/ui.md
+  'The two kinds of plugin': '两类插件',
+  'The injected client': '注入的客户端',
+  'Declaring the pages': '声明页面',
+  'Capabilities and the interface': '能力与界面',
+  'Styling': '样式',
+  // plugins/publishing.md
+  'Signing': '签名',
+  'Checking a signature': '校验签名',
+  'What is signed': '签的是什么',
+  'Versioning': '版本',
+  'Before you publish': '发布之前',
+  // plugins/faq.md
+  'Do I need to write Rust?': '我需要写 Rust 吗？',
+  'Why WebAssembly?': '为什么是 WebAssembly？',
+  'How big is a plugin?': '插件有多大？',
+  'Can two plugins see each other\'s data?': '两个插件能看到彼此的数据吗？',
+  'Can a plugin talk to another device?': '插件能和另一台设备通信吗？',
+  'What happens when a plugin is updated?': '插件更新时会怎样？',
+  'What happens when a plugin crashes?': '插件崩溃时会怎样？',
+  'Can a plugin run in the background?': '插件能在后台运行吗？',
+  'Why is my call refused with `capability_denied`?': '为什么我的调用被以 `capability_denied` 拒绝？',
+  'Where do I report a problem?': '在哪里报告问题？',
   // reference/paths.md
   'The two roots': '两个根目录',
   'Inside the data directory': '数据目录内部',

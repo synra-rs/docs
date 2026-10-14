@@ -1,13 +1,74 @@
 ---
-title: 编写界面
+title: Building a UI
 ---
 
-# 编写界面
+# 构建界面
 
-This page is being written. The subject is settled; the explanation is not published yet.
+插件的界面是一个 WebView 包，内核把它加载进一个隔离的上下文，并给它一个客户端对象。那个客户端就是页面
+能触达的全部 —— 没有 `window.synra`、没有文件系统，也没有除插件声明之外的网络。
 
-In the meantime, the behaviour it documents is reachable today:
+## 两类插件
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+| 运行时 | 内核加载什么 | 插件能做什么 |
+| --- | --- | --- |
+| `runtime.headless` | 一个 WebAssembly 组件 | SDK 暴露的一切 |
+| `runtime.ui` | 一个 WebView 包 | 只有注入客户端暴露的那些 |
+| 两者 | 两者，共用一份清单 | 两者，通过内核互相通信 |
+
+::: info 只有界面的插件不只是更简单，而是更安全
+内核不从它加载任何代码。它做的一切都经过客户端，而每一次客户端调用都是内核能归属、能限流、能拒绝的调用。
+UI 插件无法活得比它所在的页面更久。
+:::
+
+## 注入的客户端
+
+插件的页面通过**一个**全局对象触达宿主，它在页面自己的代码运行之前就已经存在。
+
+| 命名空间 | 用来 |
+| --- | --- |
+| `env` | 环境事实：SDK 版本、语言、深色模式 |
+| `log` | 写日志 |
+| `event` | 发出与订阅事件 |
+| `device` | 列出设备，以及触达其中一台 |
+| `storage` | 插件自己保存的数据 |
+| `network` | 插件声明过的请求 |
+| `transfer` | 收发文件 |
+| `platform` | 操作系统 |
+| `clipboard` | 读写剪贴板 |
+| `self` | 调用插件自己的动作 |
+
+每个方法都是一次调用，所以返回 Promise。没有同步的东西 —— 同步调用就意味着让页面阻塞在内核上。
+
+::: warning 客户端不是浏览器 API
+没有 `fetch` 全局，也没有文件系统。用了其中一个的页面会在 WebView 里失败，而那个失败看起来会像插件的
+bug，而不是宿主的拒绝。
+:::
+
+## 声明页面
+
+UI 插件在清单里声明它的页面，内核从包里提供它们。
+
+- **入口**是 WebView 加载的那个 HTML 文件。
+- **默认页**是用户打开插件时落到的地方。
+- 每个**页面**是插件让其可达的一条路由。
+
+## 能力与界面
+
+界面发出的调用，与 headless 插件的调用受完全一样的检查。一个调用了清单未声明之物的页面会拿到
+`capability_denied`，而用户根本看不到关于它的提示。
+
+::: tip 要得更少，安装提示就说得更多
+`network:fetch:api.example.com` 和 `network:fetch:*` 在清单里只差一个词，在提示里差得很远。窄的那条告诉
+用户：哪台服务器会看到他的数据。
+:::
+
+## 样式
+
+页面是你的，在一个自身没有网络访问的 WebView 里。字体、图片、脚本都来自包，所以任何外部的都是插件必须声
+明的一次请求。
+
+## 接下来
+
+- [清单](/zh/plugins/manifest) —— 如何声明页面与运行时。
+- [能力](/zh/reference/capabilities) —— 每条声明对用户意味着什么。
+- [发布](/zh/plugins/publishing) —— 为"界面与代码一起出货"的包签名。

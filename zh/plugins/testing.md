@@ -1,13 +1,62 @@
 ---
-title: 测试
+title: Testing
 ---
 
 # 测试
 
-This page is being written. The subject is settled; the explanation is not published yet.
+`synra-plugin verify` 跑的就是内核在安装时跑的那些检查，只是提前了，好让你还能对它做点什么。本页说明每
+项检查是什么意思、该拿它怎么办。
 
-In the meantime, the behaviour it documents is reachable today:
+## 运行它
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+```bash
+synra-plugin verify
+```
+
+通过的插件只报通过。每一条发现是三种之一：
+
+| 结果 | 含义 | 怎么办 |
+| --- | --- | --- |
+| `ok` | 检查跑了并通过 | 不用管 |
+| `warn` | 检查跑不了，或发现了不致命的东西 | 读一下；可能与你本机有关 |
+| `fail` | 内核会拒绝这个插件 | 发布前修掉 |
+
+`--brief` 只打发现、不打建议，`--json` 打一个 JSON 值供脚本读取。只有没有任何失败时，退出码才是 0。
+
+## 检查了什么
+
+| 检查 | 看什么 |
+| --- | --- |
+| manifest | 清单能被解析，且每个字段都通过校验 |
+| wasm | 清单点名的产物存在，且是一个组件 |
+| imports | 产物实际导入的东西，与清单声明的做比对 |
+
+::: warning 关于 imports 的 `warn` 不是通过
+它的意思是产物的导入**没被读到** —— 通常是因为还没有产物。内核在安装时会读它们，所以带着这条警告发布的
+插件，是"能力不匹配由用户而不是由你发现"的插件。
+:::
+
+## 值得弄懂的那个失败
+
+最常见的 `fail` 是：代码用到了某个能力，而清单没有声明它。运行时的症状是一个看起来完全正确的调用被以
+`capability_denied` 拒绝 —— 因为缺的那一块在另一个文件里。
+
+修法是**加上那条声明**，绝不是把已有的声明放宽。本来 `network:fetch:api.example.com` 就够用、却声明了
+`network:fetch:*` 的插件，是用户更不愿意装的插件；而窄的那条正是赢得安装的东西。
+
+## 测试逻辑
+
+插件代码调用的是 SDK 的宿主调用，所以一个单元测试要么把它们打桩，要么去测一个不调用它们的纯函数。第二种
+值得刻意安排：行为是"从输入到输出的函数"的插件，是**完全不需要内核**就能测的插件。
+
+| 做法 | 适合 |
+| --- | --- |
+| 直接调用纯函数 | 解析、判断、格式化 |
+| 给宿主调用打桩 | 它们之间的接线 |
+
+## 发布之前
+
+- [ ] `verify` 不报任何失败。
+- [ ] 清单里每条能力都是插件真正需要的。
+- [ ] 版本比已发布的更高。
+- [ ] 产物已用发布者密钥签名 —— 见[发布](/zh/plugins/publishing)。
