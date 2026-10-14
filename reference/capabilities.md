@@ -55,12 +55,25 @@ a user already knows.
 
 A manifest may use a wildcard where a whole segment is one; a grant the user gives is a concrete capability.
 
+There are **two** wildcards, and the difference is how much they stand for:
+
+| Wildcard | Stands for | Example |
+| --- | --- | --- |
+| `*` | exactly one segment | `device:send:*` — any device, but a device |
+| `**` | one or more segments | `storage:local:**` — anything under this prefix |
+
 - `device:send:*` in a manifest asks for the ability to send to any device.
 - `device:send:dev_7f3a` is what the user grants, naming one device.
 
-A grant covers a request when every segment of the request is matched by the grant's, with `*` matching any
-one segment. So a request of `log:*` is covered by a grant of `log:write`, while a request of `log:write` is
-not covered by a grant of `log:read`.
+A grant covers a request when every segment of the request is matched by the grant's. So a request of
+`log:*` is covered by a grant of `log:write`, while a request of `log:write` is not covered by a grant of
+`log:read`.
+
+::: warning `**` is not `*` written twice
+`*` stops at a segment boundary and `**` does not, so `device:send:*` does not cover `device:send:dev_a:extra`
+and `device:send:**` does. A declaration that meant "one more level" and wrote `**` is one asking for more
+than it needed, and the install prompt says so.
+:::
 
 ::: info Why a wildcard is matched segment by segment
 `log:*` must not be covered by a grant of `log` — that is a different capability, and treating a prefix as a
