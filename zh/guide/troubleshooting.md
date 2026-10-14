@@ -1,13 +1,86 @@
 ---
-title: 故障排查
+title: Troubleshooting
 ---
 
 # 故障排查
 
-This page is being written. The subject is settled; the explanation is not published yet.
+大多数问题属于三种之一：两台设备互相看不见、它们没配上对、或者内核需要的某个东西缺失。`synra doctor` 直接
+回答第三种，并把前两种范围缩小。
 
-In the meantime, the behaviour it documents is reachable today:
+## 先跑诊断
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+```bash
+synra doctor
+```
+
+它探测的是**这台机器**而不是网络，每个结果是三种之一：
+
+| 结果 | 含义 |
+| --- | --- |
+| ok | 探针跑了，答案良好 |
+| warn | 探针跑不了，或发现了不致命的东西 |
+| fail | 在修好之前，内核无法在这里运行 |
+
+`--failures-only` 只打失败的，`--output json` 打一个 JSON 值，方便贴进报告。
+
+::: tip 求助时把报告一起带上
+`--output json` 就是为"能直接粘贴"设计的。它说明了哪个平台、哪些目录、以及哪些探针跑不了 —— 这三样正是帮你
+的人否则要反问你的东西。
+:::
+
+## 每个探针的含义
+
+| 探针 | 失败时意味着 |
+| --- | --- |
+| `tcp_port_available` | 别的东西占着传输端口 |
+| `discovery_port_available` | 别的东西占着发现端口 |
+| `discovery_udp_available` | 组播发现绑不上 |
+| `network_stack` | 这台机器根本开不了 socket |
+| `firewall` | 平台需要加一条规则 |
+| `data_dir_writable` | 当前用户对数据目录没有写权限 |
+| `disk_space` | 数据目录拒绝写入 |
+| `clock_sanity` | 系统时钟偏得足以破坏配对 |
+| `webview_version` | 没有可用的 WebView，窗口打不开 |
+| `keyring` | 密钥链触达不到 |
+| `wasm_backend` | 插件运行时没有初始化 |
+| `plugin_dir` | 插件目录还不存在 |
+
+::: warning 关于密钥链或 Wasm 运行时的 `warn` 不是通过
+它的意思是探针**没跑** —— 通常因为它需要的东西这个命令起不来。它被报出来而不是被跳过，是为了让这个缺口可见。
+:::
+
+## 两台设备互相看不见
+
+按顺序检查：
+
+1. **同一个网络。** 发现是本地的。其中一台开着 VPN 可能就把它放到了另一个网络上。
+2. **防火墙。** `synra doctor` 的 `firewall` 探针会说明这个平台是否需要加规则。UDP 发现需要允许入站流量。
+3. **客户端隔离。** 有些访客网络会阻断客户端之间的流量，而设备上没有任何设置能修好它。
+
+## 看得见但配不上对
+
+- **提示被拒绝了。** 拒绝会带原因：`busy`、`expired` 或 `blocked`。`expired` 是那个可以重试的；`blocked` 需要
+  在**对方**设备上解除拉黑。
+- **时钟偏得太多。** 配对涉及时间戳，而一台慢了几分钟的设备可能立刻被判为 `expired`。`clock_sanity` 探针就是
+  抓这个的。
+
+## 传输中断了
+
+被打断的传输会在链路回来时自行续传，只要没超出总时间预算。被取消的不会。
+
+要留意的失败是 `integrity_mismatch`：收到的字节与发送前声明的摘要不符。半成品文件会被丢弃，重试从头再来。见
+[错误码](/zh/reference/errors)。
+
+## 日志在哪里
+
+`synra logs` 读内核日志。文件在缓存目录下 —— 各平台路径见[数据位置](/zh/reference/paths)。
+
+::: warning 诊断包**不包含**你的密钥
+它带的是日志、崩溃报告和 doctor 报告。它不带数据目录里的密钥 —— 这正是它可以安全发出去的原因。
+:::
+
+## 接下来
+
+- [数据位置](/zh/reference/paths) —— 磁盘上的一切在哪。
+- [错误码](/zh/reference/errors) —— 某个具体错误码是什么意思。
+- [平台支持](/zh/reference/platform-matrix) —— 各平台有哪些不同。
