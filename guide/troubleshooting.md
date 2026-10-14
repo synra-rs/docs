@@ -55,10 +55,36 @@ rather than skipped so the gap is visible.
 In order:
 
 1. **Same network.** Discovery is local. A VPN on one device can put it on a different one.
-2. **The firewall.** `synra doctor`'s `firewall` probe says whether this platform wants a rule. UDP discovery
-   needs inbound traffic allowed.
+2. **The firewall.** `synra doctor`'s `firewall` probe says whether this platform wants a rule. Two things need
+   inbound traffic allowed, and they are separate: **UDP 32101**, which is how devices find each other, and
+   **TCP 47100**, which is how they actually talk. A rule that allows only the first gives you the worst case —
+   devices that appear in the list and cannot be connected to.
 3. **Client isolation.** Some guest networks block traffic between clients, and no setting on the device fixes
    it.
+
+## Ports
+
+Two ports matter, and a device needs something different from each.
+
+| Port | Protocol | Direction | What it is for |
+| --- | --- | --- | --- |
+| 32101 | UDP | inbound and outbound | discovery: broadcasts and their answers |
+| 47100 | TCP | inbound and outbound | the transport: one connection per peer, carrying messages |
+
+**32101 is fixed.** It is the protocol's own constant, and it has to be the same on every device — a device that
+listened somewhere else could not be found, and could not find anything. It is also a **singleton per machine**:
+two kernels on one host would both answer every query, and a peer would receive two answers from one address with
+different device identifiers. `--discovery-port` moves it, and both devices have to agree if you do.
+
+**47100 is the port peers connect to**, and it is the one that matters most for a firewall rule. `--listen-port`
+changes it, and the announcement a device broadcasts carries whatever it was set to — so two devices can use
+different ports and still reach each other.
+
+::: tip The outbound query port is not one of these
+This device's own discovery queries go out from an **ephemeral** port the operating system assigns, so that the
+answers come back to a socket that is not the shared one. It is not a setting, it changes between runs, and it
+needs no firewall rule. Nothing else in Synra uses a port you have not seen in the table above.
+:::
 
 ## They can see each other and not pair
 
