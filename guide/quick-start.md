@@ -90,7 +90,11 @@ phone                                     laptop
 If you prefer a terminal, or want to check that the same journey works without the user interface:
 
 ```bash
-synra devices --json                 # list reachable devices
-synra send --to <device-id> --url https://example.com
-synra log --follow                   # watch the intent, the gate checks and the result
+synra devices --output json          # the devices this kernel has seen
+synra send --to <device-id> --text "https://example.com"
+synra logs --lines 50                # the kernel's log, most recent last
+synra status                         # its state and its links
 ```
+
+`synra send` carries text or a file. It does not open a URL on the other device: opening one is what a plugin
+does with what it receives, and the kernel's own job is the moving.

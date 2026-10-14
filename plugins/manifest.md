@@ -4,7 +4,7 @@ title: The Manifest
 
 # The Manifest
 
-Every plugin has a `synra.json` at the root of its package. It says what the plugin is, which
+Every plugin has a `manifest.json` at the root of its package. It says what the plugin is, which
 artifact implements it, and what it is allowed to do. The host reads it before running anything,
 and `synra-plugin verify` checks it before you publish.
 
