@@ -28,11 +28,22 @@ secret both ends hold rather than a record either end can rebuild.
 | `db` | the database: devices, plugins, settings, transfers |
 | `bootstrap/config.json` | the settings a user has changed |
 | `keys/` | this device's identity and pairing secrets |
+| `inbox/` | files other devices have sent here |
 | `plugins/<id>/` | an installed plugin's artifact and manifest |
 | `plugins/data/` | what plugins have saved |
 
 A plugin's saved data is under the plugins directory rather than beside its code, so replacing a plugin's
 artifact — an update — does not disturb what it stored.
+
+::: tip Why a received file lands here and not in Downloads
+Because this is the one directory the kernel is certain it may write to. A kernel that guessed a user's Downloads
+folder would be one that writes where it was not asked to, and a kernel that asked would have to open a window
+before it could receive anything. The name a sender offers is **not** used as a path: it goes through the same
+sanitiser a plugin identifier does, so `../../../.ssh/authorized_keys` becomes a file called something else inside
+`inbox/` rather than a write outside it.
+
+Moving a file from the inbox to somewhere the user chose is the interface's job, where the user can be asked.
+:::
 
 ## Inside the cache directory
 
