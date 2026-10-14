@@ -1,13 +1,64 @@
 ---
-title: 常见问题
+title: FAQ
 ---
 
 # 常见问题
 
-This page is being written. The subject is settled; the explanation is not published yet.
+## 我需要写 Rust 吗？
 
-In the meantime, the behaviour it documents is reachable today:
+有行为的插件需要。只画界面的插件是一个 WebView 包，完全不需要 Rust —— 那就是 `ui` 模板。
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+## 为什么是 WebAssembly？
+
+因为它是唯一能回答"用户真正关心的那个问题"的沙箱：不是"这段代码能读我的内存吗"，而是"它能对我的系统做
+什么"。插件拿不到文件系统、网络和设备，除非是它声明过、且用户批准过的那些。
+
+::: info WebAssembly 不是全部答案
+它说明插件无法发起系统调用。它**不**说明插件可以访问哪些主机、能碰哪些目录、能发给哪些设备。那些是能力，
+而安装提示正是由它们构成的。
+:::
+
+## 插件有多大？
+
+headless 插件是几十 KB：release profile 按体积调过，而 SDK 自身不携带依赖。有界面的插件再大上它 UI 包的
+体积。
+
+## 两个插件能看到彼此的数据吗？
+
+不能。存储按插件做命名空间隔离，而插件声明的能力在每次调用时都被检查。就算猜到了键，一个插件也读不到另一
+个的值。
+
+## 插件能和另一台设备通信吗？
+
+能，前提是它声明了 `device:send:*`，或点名了具体设备。许可是用户批准的那个，而插件收到的设备列表携带的是
+标识符而不是地址 —— 地址不是授予给插件的东西。
+
+## 插件更新时会怎样？
+
+内核装上新的版本，如果存储的 schema 版本较旧就调用 `migrate`，而插件保留它的数据。移除字段的改动属于
+major 版本 —— 那正是告诉用户"这不是你原来那个版本"的东西。
+
+## 插件崩溃时会怎样？
+
+它被停掉，别的都不受影响。插件跑在自己的实例里，有时间预算和内存上限，所以陷入陷阱或耗尽燃料的插件，是内
+核**不再继续调用**的插件，而不是把应用拖垮的插件。
+
+## 插件能在后台运行吗？
+
+桌面上能 —— 内核是守护进程，插件可以在没有窗口的情况下被加载。移动端没有常驻后台进程，所以工作可能被系统
+挂起后再恢复。
+
+## 为什么我的调用被以 `capability_denied` 拒绝？
+
+清单没有声明该调用所需的能力，或者用户没有授予它。两者在运行时看起来一样，而修法不同 —— 前者是改清单，用
+`synra-plugin verify` 就能发现；后者是一次提示。
+
+## 在哪里报告问题？
+
+你拿到这个插件的仓库的 issue 区。内核、CLI 或 SDK 的话，见页脚的链接。
+
+## 接下来
+
+- [你的第一个插件](/zh/plugins/getting-started) —— 从这里开始。
+- [能力](/zh/reference/capabilities) —— 一条声明的含义。
+- [错误码](/zh/reference/errors) —— 一次拒绝在告诉你什么。

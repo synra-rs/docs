@@ -1,13 +1,77 @@
 ---
-title: 发布
+title: Publishing
 ---
 
 # 发布
 
-This page is being written. The subject is settled; the explanation is not published yet.
+已发布的插件，是用户不必看源码就愿意安装的插件。让这件事合理的是**签名**：产物用发布者密钥签名，而签名对
+不上的产物会被内核拒绝。
 
-In the meantime, the behaviour it documents is reachable today:
+## 签名
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+```bash
+synra-plugin sign --generate-key
+```
+
+它把私钥写到你指定的地方、打印出来，并把公钥那一半写进 `public-key.txt`。之后每次发版：
+
+```bash
+synra-plugin sign --key path/to/key
+```
+
+::: danger 私钥无法找回
+除了你，没有任何人持有一份副本。丢了密钥的发布者，无法给用户已经装上的插件发更新 —— 因为新产物验不过他们
+信任的那把密钥。
+:::
+
+::: warning `--generate-key` 会把私钥打印到终端
+这是**故意**的：一个把它藏起来的工具，会是作者从未备份过密钥的工具。这也意味着密钥会留在回滚缓冲里，所以
+在你不介意的地方生成它，并在关掉窗口之前复制到安全的地方。
+:::
+
+## 校验签名
+
+```bash
+synra-plugin sign --verify public-key.txt
+```
+
+作者在发货前校验自己的release，或者任何人校验一份别人递来的产物。
+
+## 签的是什么
+
+整个产物：WebAssembly 组件，以及有界面的插件，还有 UI 包。界面与代码一起出货的包是作为**一件事**签的，所
+以改动其中任何一半都会让签名失效。
+
+对 UI 包而言，签名覆盖每一个文件，并以固定顺序覆盖 —— 所以内容相同的两个包，无论文件在磁盘上是什么顺序，
+都会产生相同的签名。
+
+## 版本
+
+| 改动 | 版本 |
+| --- | --- |
+| 修一个问题 | patch |
+| 新增能力、事件或动作 | minor |
+| 移除字段、重命名动作、行为变窄 | major |
+
+::: warning 能力改动就是一次新的安装提示
+新增一条，就意味着用户会被问一次。在 patch 版本里加能力的插件，是让用户遇到一次"版本号说是修个问题"却
+弹提示的插件。
+:::
+
+## 用户看到什么
+
+| 展示 | 来自 |
+| --- | --- |
+| 标题与描述 | 清单 |
+| 发布者 | 清单的 `publisher.id` |
+| 它能做什么 | 它声明的能力，用人话 |
+| 它已签名 | 产物签名与发布者密钥的比对结果 |
+
+一条声明如何变成一句话，见[能力](/zh/reference/capabilities)。
+
+## 发布之前
+
+- [ ] `synra-plugin verify` 不报任何失败。
+- [ ] 版本比已发布的更高。
+- [ ] 产物已用这个发布者用过的同一把密钥签名。
+- [ ] 私钥已备份在**不是这台机器**的地方。
