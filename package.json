@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@11.15.1",
+  "packageManager": "pnpm@12.11.2",
   "description": "The Synra website and documentation, at https://synra-app.dev",
   "license": "MIT",
   "scripts": {
@@ -26,17 +26,17 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.5.1",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "eslint": "^10.12.0",
     "esno": "^4.8.0",
     "jiti": "^2.7.0",
     "markdown-it-task-lists": "^2.1.1",
-    "nano-staged": "^0.1.2",
+    "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.14.0",
-    "typescript": "^6.0.3",
+    "typescript": "6.0.3",
     "vitepress": "^1.6.4",
     "vue": "^3.5.43",
-    "vue-tsc": "^3.3.12"
+    "vue-tsc": "^3.3.13"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm nano-staged"
