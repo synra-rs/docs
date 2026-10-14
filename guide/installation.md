@@ -58,16 +58,22 @@ until it is.
 
 ## The command line
 
-The kernel ships with a CLI that does everything the apps do, without a user interface. It is the
-quickest way to check that discovery and pairing work when the graphical app is not cooperating.
+The kernel ships with a CLI that talks to a running kernel over its local socket. It is the quickest
+way to see what the kernel sees when the graphical app is not cooperating.
 
 ```bash
 cargo install synra-cli
 
-synra devices              # who is visible on this network
-synra pair <device-id>     # request pairing
-synra send --to <id> --text "hello"
+synra devices                     # the devices this kernel has seen
+synra status                      # its state and its links
+synra send --to <id> --text "hi"  # text or a file, to one device
+synra plugin                      # list, install, enable, disable, remove
+synra logs                        # the kernel's log
+synra doctor                      # whether this machine can run the kernel
 ```
+
+Pairing itself is done in the interface, and a command that targets a device needs it to be paired
+first.
 
 ## System permissions
 
@@ -91,9 +97,12 @@ Nothing fails silently.
 synra doctor
 ```
 
-This reports the device id, the local addresses being advertised, whether the discovery port can be
-opened, and whether any paired device is currently reachable. If two devices cannot see each other,
-this is the first thing to look at — see [Troubleshooting](/guide/troubleshooting).
+It probes the machine rather than the network: whether the transport and discovery ports can be bound,
+whether the data directory is writable, whether the platform's firewall or WebView needs attention.
+Each probe reports `ok`, `warn` or `fail`, and the exit code is non-zero only when something failed.
+
+If two devices cannot see each other, this is the first thing to look at — see
+[Troubleshooting](/guide/troubleshooting) for what each probe means.
 
 ## Next
 

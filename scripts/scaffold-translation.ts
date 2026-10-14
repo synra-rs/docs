@@ -35,6 +35,32 @@ const SECTIONS = ['guide', 'plugins', 'reference'] as const
  * useful than a guess that silently produces something wrong.
  */
 const HEADING_MAP: Record<string, string> = {
+  // guide/plugins.md
+  'What installing asks you': '安装时会问你什么',
+  'What a plugin can reach': '插件能触达什么',
+  'Where plugins come from': '插件从哪里来',
+  'Turning one off': '关掉一个插件',
+  'What is built in': '内置的部分',
+  // guide/devices-and-pairing.md
+  'Seeing and being seen': '看见与被看见',
+  'How pairing goes': '配对的过程',
+  'Why a request can be refused': '请求为什么会被拒绝',
+  'Blocking': '拉黑',
+  'What a paired device learns': '已配对设备会知道什么',
+  'When a device goes quiet': '设备安静下来时',
+  // guide/transfers.md
+  'Text': '文本',
+  'Files': '文件',
+  'Pausing and resuming': '暂停与续传',
+  'Where a received file goes': '收到的文件去哪',
+  'Clipboard sync': '剪贴板同步',
+  // guide/troubleshooting.md
+  'Start with the diagnostic': '先跑诊断',
+  'What each probe means': '每个探针的含义',
+  'The two devices cannot see each other': '两台设备互相看不见',
+  'They can see each other and not pair': '看得见但配不上对',
+  'A transfer stops': '传输中断了',
+  'Where the logs are': '日志在哪里',
   // plugins/getting-started.md
   'What you need': '需要什么',
   'Scaffold it': '生成脚手架',
