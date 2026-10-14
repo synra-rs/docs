@@ -1,13 +1,57 @@
 ---
-title: 平台支持
+title: Platform Support
 ---
 
 # 平台支持
 
-This page is being written. The subject is settled; the explanation is not published yet.
+Synra 跑在外壳能跑的地方。本页说明那是哪些平台，以及它们之间的差异如何**显现出来**，而不是被抹平成一句
+承诺。
 
-In the meantime, the behaviour it documents is reachable today:
+## 支持的平台
 
-- The command line reports it: `synra --help`
-- The kernel's contracts are in the schema and in `synra-core`
-- Anything unclear here is worth an issue at <https://github.com/synra-rs/docs/issues>
+| 平台 | 状态 |
+| --- | --- |
+| Windows | 支持 |
+| macOS | 支持 |
+| Linux | 支持 |
+| Android | 支持 |
+| iOS | 支持 |
+
+三个桌面平台的差别在打包方式与数据位置，不在内核做什么。各平台的具体目录见[数据位置](/zh/reference/paths)。
+
+## 差异如何被报告
+
+插件可能请求的某些东西，并非每个平台都有。模拟按键在 iOS 上不存在；一台无头 Linux 机器可能没有通知能
+力。
+
+::: info 内核不携带一张"平台能力表"
+平台层由应用外壳实现，内核去问它。这意味着答案来自**真正在运行的那台机器**，而不是来自编译进内核的一张
+表 —— 这也是它对一台没有通知守护进程的 Linux 机器能给出正确答案的唯一方式。
+:::
+
+请求机器做不到的事会以 `unsupported` 失败，而本来要做的那个动作不会被做。
+
+::: warning `unsupported` 不是一份缺陷报告
+它的意思是这个平台做不到，不是"哪里出错了"。把它当错误展示出来的界面，是在让用户重试一件永远不会成功的
+事。
+:::
+
+## 哪些处处相同
+
+- **线上协议。** 跑不同平台的两台设备可以互通 —— 这正是"一份协议"而不是"每平台一份"的意义。
+- **能力模型。** 插件的声明在每个平台上含义相同。
+- **存储布局的形状。** 那些目录处处都在，只有它们的父目录不同。
+
+## 移动端
+
+Android 与 iOS 支持界面与接收传输。为它们写插件之前，有两处差异值得知道：
+
+| 差异 | 后果 |
+| --- | --- |
+| 没有常驻后台进程 | 传输可能被系统中断，之后再续传 |
+| 不存在按键模拟器 | `platform:simulate-keys` 报告 `unsupported` |
+
+::: tip 桌面能用的插件不自动等于移动端插件
+内核是同一个，所以只监听事件的插件不需要任何改动。而驱动桌面的插件 —— 发按键、显示文件位置 —— 是那种
+在移动端构建上会被拒绝的插件。
+:::
