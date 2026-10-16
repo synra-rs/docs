@@ -66,8 +66,37 @@ prompt. The narrow one tells the user which server sees their data.
 
 ## Styling
 
-The page is yours, inside a WebView with no network access of its own. Fonts, images and scripts come from the
-bundle, so anything external is a request the plugin has to declare.
+The page is its own document in its own origin. The host's stylesheets do not reach it, and its styles do not
+reach the host — which also means a CSS reset here cannot leak into the rest of the application.
+
+### What the page may load
+
+Everything the page shows comes from the bundle. It has no network of its own, so a request to a font service,
+an icon CDN or an image host is a request that fails — and it fails quietly.
+
+| You want | What to do |
+| --- | --- |
+| A web font | Bundle the font file and serve it from the package: `font-src` is `self` |
+| An icon set | Bundle the icons at build time; fetching one at runtime renders an empty box |
+| A remote image | Bundle it, or fetch it through `synra.network` and render the response |
+| `fetch()` | `synra.network.fetch` — the only network the page has |
+| An inline style | Fine: `style-src` allows `unsafe-inline` |
+
+::: warning The failure mode is not an error
+A font that cannot be fetched falls back to the system stack, and an icon that cannot be fetched renders as an
+empty square. Neither looks like a refusal by the host, so both get reported as a bug in the plugin. Declare
+what you need, or bundle it.
+:::
+
+### Theme
+
+`env` reports the environment, including whether the interface is in dark mode. The host does not style your
+page, so the page applies that itself: set the theme on your own root element and drive the colours from it.
+
+### Text direction and language
+
+`env` carries the locale as well. Write your CSS with logical properties (`margin-inline-start`, not
+`margin-left`) so a right-to-left locale does not need a second stylesheet, and keep text out of images.
 
 ## Next
 
