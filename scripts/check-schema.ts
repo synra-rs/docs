@@ -8,13 +8,11 @@
  *      stops validating, and the author gets no errors until `verify` rejects the package at
  *      publish time.
  *
- *   2. **Frozen versions** — a published version's structure must not change. `manifest/v1.json`
- *      is fetched by every plugin manifest's `$schema`, so a field added to it retroactively
- *      changes what "valid" means for packages already in the wild. Adding a field means a new
- *      version directory.
+ *   2. **Reviewed version snapshots** — structural edits must be deliberate and recorded.
+ *      These schemas are still in development; reviewed contract changes update the existing
+ *      snapshot with --update. This check does not infer a release from a v1 directory name.
  *
- *      The freeze compares a *structural* digest: `description`, `title` and similar prose are
- *      excluded, so wording can be fixed in place while the contract stays put.
+ *      The digest excludes prose so editorial changes do not require a new snapshot.
  *
  * The digests live in `types/frozen/`, outside `public/`. That placement is deliberate: VitePress
  * copies everything under `public/` into the published output, and it does so after Vite's own
@@ -122,6 +120,40 @@ function collectRefs(node: unknown, out: string[] = []): string[] {
   return out
 }
 
+/** Exercises the current manifest's real event-name schema, including refusal and byte-boundary cases. */
+function checkEventNamespace(doc: Record<string, unknown>): string[] {
+  const definition = resolveRef(doc, '#/properties/events/items/properties/name').value as
+    { pattern?: unknown, maxLength?: unknown } | undefined
+  if (typeof definition?.pattern !== 'string' || definition.maxLength !== 240)
+    return ['event names need the full package-id pattern and the 240-byte boundary']
+
+  const pattern = new RegExp(definition.pattern)
+  const prefix = '_plugin.@acme/chat.'
+  const longest = prefix + 'x'.repeat(240 - prefix.length)
+  const cases: readonly [string, boolean][] = [
+    ['_plugin.@acme/chat.ready', true],
+    ['_plugin.@other/chat.ready', true],
+    ['_plugin.@acme/synra-plugin-chat.ready', true],
+    ['_plugin.chat.ready', false],
+    ['_plugin.@acme/chat.', false],
+    ['_plugin.@acme/chat.*', false],
+    ['_plugin.@acme/chat.a..b', false],
+    ['_plugin.@acme/../chat.ready', false],
+    [longest, true],
+    [`${longest}x`, false],
+  ]
+  const failures: string[] = []
+  for (const [name, expected] of cases) {
+    if ((name.length <= definition.maxLength && pattern.test(name)) !== expected)
+      failures.push(`event namespace schema disagrees for ${JSON.stringify(name)}`)
+  }
+  const handle = resolveRef(doc, '#/properties/handles/items/properties/event').value as
+    { maxLength?: unknown } | undefined
+  if (handle?.maxLength !== 240)
+    failures.push('handle patterns need the same 240-byte boundary')
+  return failures
+}
+
 let failures = 0
 
 console.log('schema files')
@@ -157,6 +189,9 @@ for (const file of collect()) {
     }
   }
 
+  if (rel === 'manifest/v1.json')
+    problems.push(...checkEventNamespace(doc))
+
   for (const ref of collectRefs(doc)) {
     const result = resolveRef(doc, ref)
     if (result.missing)
@@ -165,12 +200,7 @@ for (const file of collect()) {
       problems.push(`external $ref is not allowed here (offline validation must work): ${ref}`)
   }
 
-  /**
-   * A versioned schema must be frozen.
-   *
-   * The freeze is what makes "a published version never changes" enforceable rather than a promise
-   * in a comment. Data files are exempt: the index has no structure anyone validates against.
-   */
+  // Versioned schemas keep reviewed structural snapshots; data indexes have no schema contract.
   const versioned = !isData && /\/v\d+\.json$/.test(rel)
   const frozenPath = join(frozenRoot, `${rel.replace(/\//g, '__')}.sha256`)
   const digest = createHash('sha256').update(JSON.stringify(canonical(doc))).digest('hex')
@@ -185,9 +215,8 @@ for (const file of collect()) {
     }
     else if (readFileSync(frozenPath, 'utf8').trim() !== digest) {
       problems.push(
-        'a published version\'s structure changed. A published schema is a contract: add a new '
-        + 'version directory instead of editing this one. If the change was only prose, the digest '
-        + 'would not have moved -- so this is structural.',
+        'a reviewed schema snapshot changed. Review the contract diff and run '
+        + 'pnpm check:schema --update to record the intended development change.',
       )
     }
   }

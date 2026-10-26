@@ -43,7 +43,7 @@ title: The Manifest
 
   "events": [
     {
-      "name": "_plugin.github-bridge.opened",
+      "name": "_plugin.@synra-plugin/github-bridge.opened",
       "payload": {
         "type": "object",
         "required": ["url"],
@@ -96,7 +96,9 @@ title: The Manifest
 
 ### `events` 与 `handles`
 
-`events` 是*你*发出的事件，每个名字都必须住在你自己的 `_plugin.<slug>.` 命名空间下。`handles` 是你想接收的事
+事件名称使用完整包身份，例如 `_plugin.@synra-plugin/github-bridge.opened`；发布者和包名前缀都参与所有权判断，不能省略。
+
+`events` 是*你*发出的事件，每个名字都必须住在你自己的 `_plugin.<full-plugin-id>.` 命名空间下。`handles` 是你想接收的事
 件 —— 内置的如 `_synra.transfer.completed`，或你自己的。
 
 声明你发出的事件不是记账：它正是让宿主能在安装时检查"已配对设备上那份你的插件，是否仍看得懂你发的东西"的东西。

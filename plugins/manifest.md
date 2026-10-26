@@ -44,7 +44,7 @@ and `synra-plugin verify` checks it before you publish.
 
   "events": [
     {
-      "name": "_plugin.github-bridge.opened",
+      "name": "_plugin.@synra-plugin/github-bridge.opened",
       "payload": {
         "type": "object",
         "required": ["url"],
@@ -100,8 +100,9 @@ what makes "the plugin cannot do more than it declared" true rather than aspirat
 
 ### `events` and `handles`
 
-`events` are the events *you* emit, and each name must live under your own `_plugin.<slug>.`
-namespace. `handles` are the events you want to receive — built-in ones such as
+`events` are the events *you* emit, and each name must live under your own `_plugin.<full-plugin-id>.`
+namespace. The owner is the exact scoped package id, including any conventional package prefix;
+publishers with the same package name own different namespaces. `handles` are the events you want to receive — built-in ones such as
 `_synra.transfer.completed`, or your own.
 
 Declaring your emitted events is not bookkeeping: it is what lets the host check, at install time,
