@@ -16,6 +16,7 @@ title: Writing the Logic
 | `deactivate` | 插件被卸载或停用 | headless、hybrid |
 | `migrate` | 存储的 schema 版本比插件的旧 | headless、hybrid |
 | `on_tick` | 内核给插件一个时间片 | 申请过时间片的插件 |
+| `on_event` | 本地插件事件命中 `handles` 且当前接收授权通过 | headless、hybrid |
 | `can_handle` | 有东西被分享，内核在问谁想要它 | 声明了分享处理器的插件 |
 | `execute` | 插件说了它想要这个分享 | 同上 |
 | `invoke` | 用户运行了插件的某个动作 | 声明了动作的插件 |
@@ -24,6 +25,20 @@ title: Writing the Logic
 只有界面的插件是一个 WebView 包：内核不从它加载任何代码，它做的一切都通过注入的客户端。那就是 `ui` 模
 板。
 :::
+
+## 接收本地插件事件
+
+headless WIT world 要求导出 `lifecycle.on-event(event-json: string) -> outcome`。
+通过 `handles` 声明路由选择器；接收其他包的事件还需要 `event:subscribe:<event-name>`。
+headless 不提供动态 `event-subscribe` import。
+
+上下文 JSON 包含宿主提供的 `event`、`from`、`senderPluginId`、`requestId`、`traceId`，
+发送者的数据位于 `payload` 下。宿主验证声明的 payload schema，投递前重查安装状态、同意记录和授权；
+卸载或重载发射插件会使其排队任务失效。
+
+`event_emit` 成功只表示本地事件入队，handler 结果单独记录，不重试、不自动回复远端。
+队列最多 128 条、8 MiB 编码 payload，单条 payload 最多 64 KiB，排队任务五秒后过期。
+本地 headless 投递、UI 的 JavaScript 事件订阅和跨设备投递分别处理。
 
 ## 调用宿主
 
@@ -34,7 +49,7 @@ SDK 把宿主调用暴露成函数，每个契约函数一个。它们中每一�
 // Ungated: reading the environment.
 let version = host::env_sdk_version();
 
-// Gated: the manifest must declare `log:write`.
+// Gated: the manifest must declare `log:info`.
 host::log(LogLevel::Info, "started", None);
 
 // Gated: the manifest must declare `storage:local:read`.

@@ -17,6 +17,7 @@ Which of these you implement follows from `runtime` in the manifest.
 | `deactivate` | the plugin is unloaded or disabled | headless, hybrid |
 | `migrate` | the stored schema version is older than the plugin's | headless, hybrid |
 | `on_tick` | the kernel gives the plugin a slice of time | a plugin that asked for one |
+| `on_event` | a local plugin event matches `handles` and current receive grants | headless, hybrid |
 | `can_handle` | something is being shared and the kernel is asking who wants it | a plugin that declares a share handler |
 | `execute` | the plugin said it wants this share | the same |
 | `invoke` | the user ran one of the plugin's actions | a plugin that declared actions |
@@ -25,6 +26,21 @@ Which of these you implement follows from `runtime` in the manifest.
 A UI-only plugin is a WebView bundle: the kernel loads no code from it, and everything it does it does through
 the injected client. That is the `ui` template.
 :::
+
+## Receiving local plugin events
+
+The headless WIT world requires `lifecycle.on-event(event-json: string) -> outcome`.
+Declare routing selectors in `handles`; receiving another package's event also requires
+`event:subscribe:<event-name>`. There is no dynamic headless `event-subscribe` import.
+
+The JSON context contains host-provided `event`, `from`, `senderPluginId`, `requestId` and `traceId`,
+with the sender's data under `payload`. The host validates declared payload schemas and rechecks
+installation, consent and grants before delivery; unloading or reloading the emitter invalidates its queued work.
+
+`event_emit` success means the local event was queued. Handler results are recorded separately, without retries
+or automatic remote replies. The queue holds at most 128 events and 8 MiB of encoded payload, each payload is
+limited to 64 KiB, and queued work expires after five seconds. Local headless delivery is separate from the UI's
+JavaScript event subscriptions and from cross-device delivery.
 
 ## Calling the host
 
@@ -35,7 +51,7 @@ capability the manifest declares or is ungated because it only reads a fact abou
 // Ungated: reading the environment.
 let version = host::env_sdk_version();
 
-// Gated: the manifest must declare `log:write`.
+// Gated: the manifest must declare `log:info`.
 host::log(LogLevel::Info, "started", None);
 
 // Gated: the manifest must declare `storage:local:read`.
