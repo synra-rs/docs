@@ -17,7 +17,8 @@ hello-synra/
 └─ .gitignore
 ```
 
-有界面的插件会多出 `package.json` 与它的界面源码；`hybrid` 模板两半都有，而一份清单描述这一对。
+`hybrid` 模板在 Rust 组件之外增加界面源码，两部分共用一份清单。
+使用前端框架时，可以增加自己的 `package.json` 和构建脚本。
 
 ## `manifest.json`
 
@@ -25,7 +26,7 @@ hello-synra/
 批准的内容。
 
 - 标识符与版本。
-- 有哪些入口点 —— `runtime.headless`、`runtime.ui`，或两者。
+- 必需的 `runtime.headless` 组件与可选的 `runtime.ui` 包。
 - 要声明哪些能力、要发出哪些事件。
 - 插件处理什么：分享目标、动作、收到的事件。
 

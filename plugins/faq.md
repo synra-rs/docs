@@ -6,8 +6,8 @@ title: FAQ
 
 ## Do I need to write Rust?
 
-For a plugin with behaviour, yes. A plugin that only draws an interface is a WebView bundle and needs no Rust
-at all — that is the `ui` template.
+Yes. Every plugin includes a Rust headless component. Add a UI with the `hybrid` template;
+the page may use JavaScript or TypeScript, but it accompanies the Rust component.
 
 ## Why WebAssembly?
 

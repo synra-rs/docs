@@ -9,7 +9,8 @@ into the host through the SDK.
 
 ## What the kernel calls
 
-Which of these you implement follows from `runtime` in the manifest.
+Every plugin must include a Rust headless component implementing the complete WIT world. The SDK provides
+all required exports; manifest declarations determine when the host calls them.
 
 | Function | Called when | A plugin that has it |
 | --- | --- | --- |
@@ -22,9 +23,12 @@ Which of these you implement follows from `runtime` in the manifest.
 | `execute` | the plugin said it wants this share | the same |
 | `invoke` | the user ran one of the plugin's actions | a plugin that declared actions |
 
-::: info A plugin with no `runtime.headless` has none of these
-A UI-only plugin is a WebView bundle: the kernel loads no code from it, and everything it does it does through
-the injected client. That is the `ui` template.
+::: info Two supported templates
+Use `headless` for a Wasm plugin or `hybrid` to add a UI bundle. UI-only plugins and the `ui` template
+are not supported. Build, verify and native installation require `runtime.headless`.
+
+The CLI and native host validate actual component bytes, including every required export and its signature.
+A manifest declaration alone cannot prove that the binary implements an entry point.
 :::
 
 ## Receiving local plugin events
