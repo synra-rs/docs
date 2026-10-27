@@ -4,22 +4,18 @@ title: Building a UI
 
 # Building a UI
 
-A plugin's interface is a WebView bundle the kernel loads into a separated context and gives a client object.
-The client is the whole of what the page can reach — there is no `window.synra`, no filesystem, and no network
-except through what the plugin declared.
+A hybrid plugin's interface is a WebView bundle loaded in an isolated context. Its injected client is the
+page's route to host capabilities, subject to the plugin's declarations and grants.
 
-## The two kinds of plugin
+## The two supported plugin kinds
 
-| Runtime | What the kernel loads | What the plugin can do |
+| Kind | Required runtime | Additional runtime |
 | --- | --- | --- |
-| `runtime.headless` | a WebAssembly component | everything the SDK exposes |
-| `runtime.ui` | a WebView bundle | only what the injected client exposes |
-| both | both, sharing one manifest | both, talking to each other through the kernel |
+| headless | `runtime.headless`: a WebAssembly component | none |
+| hybrid | `runtime.headless`: a WebAssembly component | `runtime.ui`: a WebView bundle sharing the manifest |
 
-::: info Why a UI-only plugin is safer rather than merely simpler
-The kernel runs no code from it. Everything it does goes through the client, and every client call is one the
-kernel can attribute, rate-limit and refuse. A UI plugin cannot outlive the page it lives in.
-:::
+A UI bundle supplements the headless component. UI-only plugins are not supported; use the `hybrid` template
+when creating a plugin with a page.
 
 ## The injected client
 

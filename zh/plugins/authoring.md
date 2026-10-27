@@ -8,7 +8,8 @@ title: Writing the Logic
 
 ## 内核调用什么
 
-你实现其中哪些，由清单里的 `runtime` 决定。
+每个插件都必须包含实现完整 WIT world 的 Rust headless 组件。SDK 提供全部必需导出；
+清单声明决定宿主何时调用这些入口。
 
 | 函数 | 何时被调用 | 谁会有 |
 | --- | --- | --- |
@@ -21,9 +22,11 @@ title: Writing the Logic
 | `execute` | 插件说了它想要这个分享 | 同上 |
 | `invoke` | 用户运行了插件的某个动作 | 声明了动作的插件 |
 
-::: info 没有 `runtime.headless` 的插件，这些一个都没有
-只有界面的插件是一个 WebView 包：内核不从它加载任何代码，它做的一切都通过注入的客户端。那就是 `ui` 模
-板。
+::: info 两种支持的模板
+使用 `headless` 创建 Wasm 插件，或使用 `hybrid` 增加 UI 包。不支持纯 UI 插件和 `ui` 模板；
+构建、verify 和原生安装都要求 `runtime.headless`。
+
+CLI 与原生宿主检查实际组件字节，包括全部必需导出及其签名。清单声明本身不能证明二进制实现了入口。
 :::
 
 ## 接收本地插件事件

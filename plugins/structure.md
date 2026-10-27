@@ -17,8 +17,8 @@ hello-synra/
 └─ .gitignore
 ```
 
-A plugin with an interface adds `package.json` and its UI sources; a `hybrid` template has both, and one
-manifest describes the pair.
+The `hybrid` template adds UI sources alongside the Rust component, with one manifest describing both.
+A framework-based UI can add its own `package.json` and build script.
 
 ## `manifest.json`
 
@@ -26,7 +26,7 @@ The kernel reads this before it loads anything. It is the file a user's install 
 field changed here changes what they are asked to approve.
 
 - The identifier and version.
-- Which entry points exist — `runtime.headless`, `runtime.ui`, or both.
+- The required `runtime.headless` component and optional `runtime.ui` bundle.
 - The capabilities to declare and the events to emit.
 - What the plugin handles: share targets, actions, incoming events.
 

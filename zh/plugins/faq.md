@@ -6,7 +6,8 @@ title: FAQ
 
 ## 我需要写 Rust 吗？
 
-有行为的插件需要。只画界面的插件是一个 WebView 包，完全不需要 Rust —— 那就是 `ui` 模板。
+需要。每个插件都包含 Rust headless 组件。需要界面时使用 `hybrid` 模板；
+页面可使用 JavaScript 或 TypeScript，但仍须搭配 Rust 组件。
 
 ## 为什么是 WebAssembly？
 
