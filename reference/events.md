@@ -20,7 +20,8 @@ the prefix is not decoration — it is the rule.
 | `_plugin.` | a plugin | namespaced under the plugin that emitted it |
 | `synra.internal.` | the kernel | never leaves the process |
 
-A name outside these prefixes is a plugin's own, and it must be unique within the plugin that emits it.
+Plugin events use the complete package identity: `_plugin.@acme/notes.ready` belongs to `@acme/notes`.
+An unqualified name or another package's namespace is refused.
 
 ::: info Why the prefix is checked rather than trusted
 A plugin that emitted `_synra.device.offline` could make every interface on every paired device show a
@@ -74,11 +75,10 @@ without it the panel renders, the numbers are plausible, and one of them is wron
 
 ## A plugin's own events
 
-A plugin declares the events it emits in its manifest, and an interface that wants them subscribes by the
-declared name. Two rules hold:
+A plugin declares the events it emits in its manifest. Local headless receivers select them through
+`handles` and implement `on_event`; see [Writing the Logic](/plugins/authoring). Two rules hold:
 
-- **A name is unique to its plugin.** Two plugins emitting `status.changed` would be one event with two
-  meanings, and a subscriber could not tell them apart.
+- **The full package owns its namespace.** `@acme/notes` and `@other/notes` cannot emit as each other.
 - **An event is declared before it is emitted.** Emitting an undeclared name is refused, because a
   subscriber that had to guess would be subscribing to something that may never arrive.
 
