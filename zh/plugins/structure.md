@@ -49,7 +49,7 @@ hello-synra/
 ## `src/lib.rs`
 
 行为所在：内核调用的函数，以及插件回调宿主的调用。一个插件必须提供哪些函数，由它的 `runtime` 条目决定 ——
-headless 插件实现生命周期，UI 插件一个都没有，hybrid 两半都有。
+每个插件都实现完整 headless WIT world；hybrid 再增加 UI 包。
 
 [编写逻辑](/zh/plugins/authoring) 讲这一部分。
 
@@ -59,7 +59,7 @@ headless 插件实现生命周期，UI 插件一个都没有，hybrid 两半都�
 synra-plugin build
 ```
 
-产物是 headless 那半的 `plugin.wasm`，以及 UI 那半构建出的资源目录。两者都落在清单说的地方。
+构建在 `dist/` 生成完整安装目录，包含 manifest 快照、headless 组件，以及 hybrid 的 `ui.zip`。清单中的 artifact 路径相对安装包根。静态 UI 默认来自源码 `ui/`；框架构建配置见[编写逻辑](/zh/plugins/authoring#构建完整安装包)。失败重建保留旧包，成功重建后重新签名。
 
 ::: warning `target/` 不是插件的一部分
 它是 Rust 的构建目录，而插件的产物是它产出的**一个** `.wasm`。把 `target/` 打包进去，就是让用户下载几百

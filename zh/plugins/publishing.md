@@ -16,7 +16,7 @@ synra-plugin sign --generate-key
 它把私钥写到你指定的地方、打印出来，并把公钥那一半写进 `public-key.txt`。之后每次发版：
 
 ```bash
-synra-plugin sign --key path/to/key
+synra-plugin sign --dir dist --key path/to/key
 ```
 
 ::: danger 私钥无法找回
@@ -32,7 +32,7 @@ synra-plugin sign --key path/to/key
 ## 校验签名
 
 ```bash
-synra-plugin sign --verify public-key.txt
+synra-plugin sign --dir dist --verify public-key.txt
 ```
 
 作者在发货前校验自己的release，或者任何人校验一份别人递来的产物。

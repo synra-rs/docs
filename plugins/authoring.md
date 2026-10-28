@@ -31,6 +31,34 @@ The CLI and native host validate actual component bytes, including every require
 A manifest declaration alone cannot prove that the binary implements an entry point.
 :::
 
+## Building a complete package
+
+```bash
+synra-plugin build
+synra-plugin verify --dir dist
+synra-plugin pack --dir dist --out plugin.tgz
+```
+
+Build assembles a manifest snapshot, a component and optional UI ZIP in an isolated staging directory,
+validates actual bytes, then replaces `dist/` as a complete package. Manifest artifact paths are relative
+to that package root, such as `plugin.wasm` and `ui.zip`. Failed rebuilds preserve the previous package;
+successful rebuilds remove its stale signature. Nonempty output must carry this project's build marker.
+
+A hybrid packages static source `ui/` without a package manager. Configure framework builds in Cargo.toml:
+
+```toml
+[package.metadata.synra.ui]
+source = "ui/dist"
+directory = "ui"
+command = ["pnpm", "run", "build"]
+```
+
+Paths are relative to the project root. The argv command runs directly; build does not install dependencies
+or concatenate shell commands. On Windows, select the installed executable entry, such as `pnpm.cmd`.
+Author-controlled commands must write their own UI assets, keeping CLI output and staging directories separate.
+Verify and native installation share actual ZIP checks for the entry, paths, duplicates, links, sizes,
+compression ratios and CRC. This authoring gate does not establish cross-device actions or phone UI readiness.
+
 ## Receiving local plugin events
 
 The headless WIT world requires `lifecycle.on-event(event-json: string) -> outcome`.
