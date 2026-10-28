@@ -42,7 +42,6 @@ writes is one that can install.
 | Template | What it is |
 | --- | --- |
 | `headless` | WebAssembly only, no interface |
-| `ui` | a WebView bundle only, no code the kernel runs |
 | `hybrid` | both halves, sharing one manifest |
 
 ## What you got
@@ -64,25 +63,16 @@ agree — see [The Manifest](/plugins/manifest) for which fields are checked aga
 synra-plugin build
 ```
 
-That compiles the Rust to `plugin.wasm` and writes it where the manifest says to look. The release profile is
+That writes an installable `dist/` directory containing the manifest and `plugin.wasm`; a hybrid also includes `ui.zip`. The release profile is
 already tuned for size, because a plugin's size is what a user pays on every install.
 
 ## Check it
 
 ```bash
-synra-plugin verify
+synra-plugin verify --dir dist
 ```
 
-A fresh scaffold reports three things:
-
-```
-ok    manifest               parses and validates
-fail  wasm                   the manifest names a Wasm entry point and there is no plugin.wasm
-warn  imports                the artifact's imports were not read, so they were not checked
-```
-
-The failure is expected before a build. After one, it becomes a pass, and the warning about imports becomes a
-check — the imports a plugin declares are compared against what it actually calls.
+After building, verify `dist/` to check the actual component ABI, declared imports and optional UI ZIP. Missing or unreadable artifacts fail; imports are never silently skipped.
 
 ::: tip `verify` runs the checks the kernel runs at install
 It exists because an author can act on a failure here and cannot act on one at install time. A plugin that fails
@@ -91,7 +81,7 @@ to install on a user's machine is one they will not try twice.
 
 ## Try it
 
-Copy the plugin directory to a device running Synra and install from the folder. A plugin that is not in a
+Copy the generated `dist/` package directory to a device running Synra and install from the folder. A plugin that is not in a
 registry installs from a directory, which is how a plugin is developed: edit, build, install, look.
 
 ## Where to go next

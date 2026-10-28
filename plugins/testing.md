@@ -4,13 +4,13 @@ title: Testing
 
 # Testing
 
-`synra-plugin verify` runs the checks the kernel runs at install, moved earlier so you can still act on them.
+`synra-plugin verify --dir dist` runs the checks the kernel runs at install, moved earlier so you can still act on them.
 This page says what each one means and what to do about it.
 
 ## Running it
 
 ```bash
-synra-plugin verify
+synra-plugin verify --dir dist
 ```
 
 A plugin that passes reports only passes. Each finding is one of three:
@@ -32,10 +32,8 @@ The exit code is zero only when nothing failed.
 | wasm | the artifact the manifest names exists and is a component |
 | imports | what the artifact imports against what the manifest declares |
 
-::: warning A `warn` about imports is not a pass
-It means the artifact's imports were not read — usually because there is no artifact yet. The kernel checks
-them at install time, so a plugin that shipped with this warning is one whose capability mismatch is found by
-a user rather than by you.
+::: warning Unreadable artifacts fail
+Missing bytes, read failures, wrong ABI and unknown imports fail verification; an unchecked import set never counts as passing.
 :::
 
 ## The failure worth understanding

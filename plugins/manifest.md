@@ -28,8 +28,8 @@ and `synra-plugin verify` checks it before you publish.
   "wit": "synra:plugin@1.0.0",
 
   "runtime": {
-    "headless": { "artifact": "dist/plugin.wasm" },
-    "ui": { "artifact": "dist/ui.zip", "entry": "index.html" }
+    "headless": { "artifact": "plugin.wasm" },
+    "ui": { "artifact": "ui.zip", "entry": "index.html" }
   },
 
   "capabilities": [

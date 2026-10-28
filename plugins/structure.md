@@ -51,8 +51,7 @@ which is the same decision from the other side.
 ## `src/lib.rs`
 
 The behaviour: the functions the kernel calls, and the calls the plugin makes back. Which functions a plugin
-must provide follows from its `runtime` entries — a headless plugin implements the lifecycle, a UI plugin has
-none, a hybrid one has both.
+must provide covers the complete headless WIT world; a hybrid adds its UI bundle.
 
 [Writing the Logic](/plugins/authoring) covers it.
 
@@ -62,8 +61,7 @@ none, a hybrid one has both.
 synra-plugin build
 ```
 
-The output is `plugin.wasm` for the headless half, and a built asset directory for the UI half. Both land
-where the manifest says they are.
+Build writes a complete installable `dist/` directory: a manifest snapshot, the headless component and, for a hybrid, `ui.zip`. Artifact paths in the manifest are relative to that package root. Static assets default to source `ui/`; see [Writing the Logic](/plugins/authoring#building-a-complete-package) for framework configuration. A failed rebuild preserves the previous package; sign again after a successful rebuild.
 
 ::: warning `target/` is not part of a plugin
 It is Rust's build directory, and a plugin's artifact is a single `.wasm` the build produces from it. Packaging

@@ -18,7 +18,7 @@ That writes the private key where you asked it to, prints it, and writes the pub
 Then, for each release:
 
 ```bash
-synra-plugin sign --key path/to/key
+synra-plugin sign --dir dist --key path/to/key
 ```
 
 ::: danger The private key cannot be recovered
@@ -35,7 +35,7 @@ before closing the window.
 ## Checking a signature
 
 ```bash
-synra-plugin sign --verify public-key.txt
+synra-plugin sign --dir dist --verify public-key.txt
 ```
 
 An author verifying their own release before shipping it, or anyone checking an artifact they were handed.

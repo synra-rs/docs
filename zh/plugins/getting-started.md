@@ -41,7 +41,6 @@ synra-plugin new @your-scope/hello-synra --title "Hello Synra"
 | 模板 | 是什么 |
 | --- | --- |
 | `headless` | 只有 WebAssembly，没有界面 |
-| `ui` | 只有 WebView 包，没有内核要跑的代码 |
 | `hybrid` | 两半都有，共用一份清单 |
 
 ## 生成了什么
@@ -63,25 +62,16 @@ hello-synra/
 synra-plugin build
 ```
 
-它把 Rust 编译成 `plugin.wasm`，并写到清单说的地方。release profile 已经按体积调好，因为插件的体积是用
+它在 `dist/` 生成包含 manifest 和 `plugin.wasm` 的安装目录；hybrid 还包含 `ui.zip`。release profile 已经按体积调好，因为插件的体积是用
 户每次安装都要付的代价。
 
 ## 检查
 
 ```bash
-synra-plugin verify
+synra-plugin verify --dir dist
 ```
 
-刚生成的脚手架会报三件事：
-
-```
-ok    manifest               parses and validates
-fail  wasm                   the manifest names a Wasm entry point and there is no plugin.wasm
-warn  imports                the artifact's imports were not read, so they were not checked
-```
-
-构建之前出现那个失败是正常的。构建之后它会变成通过，而关于 imports 的警告会变成一项检查 —— 插件声明的
-导入会与它实际调用的东西做比对。
+构建后校验 `dist/`，检查实际组件 ABI、导入声明覆盖和可选 UI ZIP。缺失或读取失败均导致失败，不能跳过导入检查。
 
 ::: tip `verify` 跑的就是内核在安装时跑的那些检查
 它存在的原因，是作者在这里能对失败做点什么，而在安装时不能。一个在用户机器上装不上的插件，是用户不会再
@@ -90,7 +80,7 @@ warn  imports                the artifact's imports were not read, so they were 
 
 ## 试一试
 
-把插件目录拷到跑着 Synra 的设备上，从文件夹安装。不在注册表里的插件从目录安装 —— 这也是插件开发的方式：
+把构建生成的 `dist/` 安装目录拷到跑着 Synra 的设备上，从文件夹安装。不在注册表里的插件从目录安装 —— 这也是插件开发的方式：
 改、构建、安装、看。
 
 ## 接下来看什么

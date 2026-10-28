@@ -29,6 +29,32 @@ title: Writing the Logic
 CLI 与原生宿主检查实际组件字节，包括全部必需导出及其签名。清单声明本身不能证明二进制实现了入口。
 :::
 
+## 构建完整安装包
+
+```bash
+synra-plugin build
+synra-plugin verify --dir dist
+synra-plugin pack --dir dist --out plugin.tgz
+```
+
+build 在独立暂存目录生成 manifest 快照、Wasm 组件及可选的 UI ZIP，通过实际校验后整体替换 `dist/`。
+清单中的 artifact 路径相对包根，例如 `plugin.wasm` 和 `ui.zip`。
+失败重建保留旧包；成功重建移除旧签名。已有非空输出必须带当前项目的构建标记，避免覆盖其他文件。
+
+hybrid 默认直接打包静态 `ui/`，不要求包管理器。框架项目在 Cargo.toml 配置：
+
+```toml
+[package.metadata.synra.ui]
+source = "ui/dist"
+directory = "ui"
+command = ["pnpm", "run", "build"]
+```
+
+source 与 directory 相对项目根。command 是直接执行的 argv，不自动安装依赖或拼接 shell 命令；
+Windows 可配置实际安装的入口，例如 `pnpm.cmd`。作者的本地构建命令须只写自己的 UI 资源目录。
+verify 和原生安装共用实际 ZIP 的入口、路径、重复条目、链接、大小、压缩比及 CRC 校验。
+这条构建链路不代表跨设备宿主调用或手机 UI 已完成验收。
+
 ## 接收本地插件事件
 
 headless WIT world 要求导出 `lifecycle.on-event(event-json: string) -> outcome`。
