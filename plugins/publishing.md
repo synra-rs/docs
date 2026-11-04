@@ -1,81 +1,69 @@
 ---
-title: Publishing
+title: Signing & Packaging
 ---
 
-# Publishing
+# Signing & Packaging
 
-A published plugin is one a user can install without seeing its source. What makes that reasonable is a
-signature: the artifact is signed with a publisher's key, and the kernel refuses one whose signature does not
-match.
+Build, verify, sign and package the exact files you intend to distribute.
+The author CLI's publish command validates a static distribution; it does not silently upload it.
 
-## Signing
+## Create a signing key
 
-```bash
+```sh
 synra-plugin sign --generate-key
 ```
 
-That writes the private key where you asked it to, prints it, and writes the public half to `public-key.txt`.
-Then, for each release:
+The command prints private signing material. Store it securely outside the project and package;
+follow the output for the corresponding public key. A signing key file contains 32 bytes as hex.
 
-```bash
-synra-plugin sign --dir dist --key path/to/key
+::: warning Keep private signing material out of logs
+Do not run key generation in shared CI logs or commit its output.
+A publisher's key needs a separate protected backup.
+:::
+
+## Sign and check the built package
+
+```sh
+synra-plugin build
+synra-plugin verify --dir dist
+synra-plugin sign --dir dist --key path/to/private-key
+synra-plugin sign --dir dist --verify path/to/public-key.txt
 ```
 
-::: danger The private key cannot be recovered
-Nobody holds a copy but you. A publisher who loses their key cannot ship an update to a plugin users have
-already installed, because the new artifact would not verify against the key they trust.
-:::
+The signature binds the manifest digest and named artifact digests, including the UI ZIP.
+Changing an artifact or rebuilding requires a new signature.
+It does not make an unreviewed publisher trustworthy or grant any capability.
 
-::: warning `--generate-key` prints the private key to the terminal
-That is deliberate: a tool that hid it would be one whose keys the author never backed up. It also means the
-key ends up in a scrollback buffer, so generate it where that does not matter, and copy it somewhere safe
-before closing the window.
-:::
+## Package and inspect
 
-## Checking a signature
-
-```bash
-synra-plugin sign --dir dist --verify public-key.txt
+```sh
+synra-plugin pack --dir dist --out plugin.tgz
 ```
 
-An author verifying their own release before shipping it, or anyone checking an artifact they were handed.
+A registry archive and a locally installed folder are distribution forms of the same package.
+Keep the manifest, component, UI and signature together; do not send a raw Cargo module as a plugin.
 
-## What is signed
+## Static distribution
 
-The whole artifact: the WebAssembly component, and for a plugin with an interface, the UI bundle as well. A
-bundle whose UI and code ship together is signed as one thing, so a change to either invalidates the
-signature.
+Use `pack --index` to create a static registry index.
+`publish --index` checks local files, while `upload` uses an author-provided upload command.
+Inspect the exact arguments with the pinned tool:
 
-For a UI bundle the signature covers every file, in a fixed order, so two bundles with the same contents
-produce the same signature regardless of how the files were ordered on disk.
+```sh
+synra-plugin pack --help
+synra-plugin publish --help
+synra-plugin upload --help
+```
 
-## Versioning
+Uploading or publishing is an explicit delivery step, separate from a local build.
 
-| Change | Version |
-| --- | --- |
-| a fix | patch |
-| a new capability, event or action | minor |
-| a removed field, a renamed action, a narrower behavior | major |
+## Updates and user decisions
 
-::: warning A capability change is a new install prompt
-Adding one means the user is asked about it. A plugin that adds a capability in a patch release is one whose
-users get a prompt they did not expect from a version number that said "a fix".
-:::
+Use meaningful versions and keep publisher identity consistent.
+New capabilities require review; an installed update is not permission to run every new operation.
+Key changes and revoked publishers also have their own trust decisions.
 
-## What the user sees
+## Next
 
-| Shown | Where it comes from |
-| --- | --- |
-| the title and description | the manifest |
-| the publisher | the manifest's `publisher.id` |
-| what it can do | its declared capabilities, in plain words |
-| that it is signed | the artifact's signature against the publisher's key |
-
-See [Capabilities](/reference/capabilities) for how a declaration becomes a sentence.
-
-## Before you publish
-
-- [ ] `synra-plugin verify` reports no failures.
-- [ ] the version is higher than the published one.
-- [ ] the artifact is signed with the key this publisher has used before.
-- [ ] the private key is backed up somewhere that is not this machine.
+- [Testing](/plugins/testing).
+- [Plugin management](/guide/plugins).

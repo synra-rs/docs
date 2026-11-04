@@ -1,82 +1,62 @@
 ---
-title: Built-in Events
+title: 事件
 ---
 
-# 内置事件
+# 事件
 
-事件是内核告诉应用其余部分"发生了什么"的方式。插件会发出事件，内核也会发出自己的，界面则订阅它
-需要绘制的那部分。
+区分宿主界面状态事件与插件业务事件，两者名称及交付契约不同。
 
-本页是内核自有事件的目录：有哪些、各自携带什么、以及什么时候触发。
+## 宿主界面事件
 
-## 名称
+应用的 kernel-event 桥传递带序号的 IPC 事件。
 
-事件名是一个带保留前缀的点号分隔字符串。谁能发出什么由前缀决定 —— 所以前缀不是装饰，它就是规则
-本身。
+| 事件 | 含义 |
+| --- | --- |
+| `deviceCardUpdated` / `deviceRemoved` | 设备列表变化 |
+| `scanUpdated` | 扫描状态 |
+| `pairingUpdated` | 配对请求与结果 |
+| `inputUpdated` | 当前输入会话状态 |
+| `intentUpdated` / `intentFinished` | 通用任务状态与结果 |
+| `transferUpdated` / `transferFinished` | 传输状态与结果 |
+| `pluginUpdated` / `pluginConsentRequested` | 插件状态与待确认请求 |
+| `pluginInstallProgress` / `pluginUpdateAvailable` / `pluginHealthChanged` | 安装、更新与健康状态 |
+| `configUpdated` | 配置快照 |
+| `debugWire` / `logLine` / `notice` | 诊断与通知 |
 
-| 前缀 | 发出者 | 去向 |
-| --- | --- | --- |
-| `_synra.` | 内核 | 内置事件，见下表 |
-| `_plugin.` | 插件 | 挂在发出它的插件命名空间下 |
-| `synra.internal.` | 内核 | 从不离开本进程 |
+应用使用唯一的中央订阅和共享 store，忽略重复序号，
+发现缺口时重读权威快照。旧快照不能覆盖更新的事件。
 
-插件事件使用完整包身份：`_plugin.@acme/notes.ready` 属于 `@acme/notes`。
-没有命名空间或使用其他包命名空间的发射会被拒绝。
+## 插件事件命名空间
 
-::: info 为什么前缀是**校验**而不是"信任"
-一个发出了 `_synra.device.offline` 的插件，可以让每一台已配对设备上的每一个界面都把某台设备显示为
-离线。前缀正是让这件事**不可能**、而不只是"不鼓励"的东西。
-:::
+| 前缀 | 所有者 |
+| --- | --- |
+| `_synra.` | 宿主定义的事件目录 |
+| `_plugin.<full-plugin-id>.` | 准确的 scoped 插件 |
+| `synra.internal.` | 进程内宿主事件 |
 
-## 目录
+例如，`_plugin.@acme/notes.ready` 属于 `@acme/notes`。
+插件不能发出其他包的名称或宿主保留事件。
 
-以下是内核自有的。插件无法发出它们，而无论装了哪些插件，界面都会收到它们。
+## 目录与交付
 
-| 名称 | 携带 | 何时 |
-| --- | --- | --- |
-| `_synra.device.changed` | 设备卡片 | 设备出现或状态变化 |
-| `_synra.device.offline` | 设备 id | 已配对设备停止应答 |
-| `_synra.device.renamed` | 设备 id 与新名字 | 用户重命名了设备 |
-| `_synra.pairing.changed` | 配对状态 | 设备被配对或解除配对 |
-| `_synra.share.received` | 分享了什么、来自谁 | 另一台设备向本机分享了东西 |
-| `_synra.intent.completed` | 意图 id 与结果 | 意图成功结束 |
-| `_synra.intent.failed` | 意图 id 与错误 | 意图以失败结束 |
-| `_synra.transfer.completed` | 传输 id 与去向 | 一个文件收完或发完 |
-| `_synra.transfer.failed` | 传输 id 与错误 | 一个传输放弃了 |
-| `_synra.transfer.progress` | 传输 id 与进度 | 传输推进了 |
-| `_synra.clipboard.received` | 收到了什么 | 剪贴板同步送达了内容 |
-| `_synra.plugin.installed` | 插件快照 | 插件被安装 |
-| `_synra.plugin.updated` | 插件快照 | 插件被更新 |
-| `_synra.plugin.uninstalled` | 插件 id | 插件被移除 |
-| `_synra.host.foreground` | 无 | 应用来到前台 |
-| `_synra.host.background` | 无 | 应用退到后台 |
-| `_synra.network.changed` | 新状态 | 网络发生变化 |
+协议声明了 `_synra.device.changed`、`_synra.transfer.completed`、
+`_synra.plugin.capability-changed` 和宿主生命周期等名称。
+名称已声明，不表示每个宿主的所有工作流都会发布它。
 
-::: tip 只订阅你要绘制的
-对大文件而言，`_synra.transfer.progress` 每秒会触发很多次。一个为了更新角标而订阅它的界面，其工作
-量正比于**传输速度**，而不是正比于**用户看到的东西**。
-:::
+使用真实宿主支持的订阅与选择器，
+不要把 `pairingUpdated` 等 IPC 名称当成插件事件选择器。
 
-## 投递与顺序
+## Headless 与 UI 接收方
 
-界面收到的每个事件都带一个序号，而正是这个序号让"缺口"变得可见。
+Headless 接收方声明 `handles` 并实现 `on_event`，
+JavaScript 页面通过注入客户端订阅，退出时需要退订。
 
-- 序号是**每个内核一份**，不是每个订阅者一份 —— 所以两个窗口对"哪个事件先发生"的看法一致。
-- 小于或等于已见最大值的序号是**重复**。它只被应用一次，其余忽略。
-- 向前跳跃意味着有事件没收到，此时界面重读一次快照，而不是显示一份安静地过时的列表。
+宿主检查事件所有权、声明负载和当前授权。
+入队成功不表示处理器已运行，也不表示远端业务成功。
+跨设备交付还需要对应宿主路径和接收插件状态。
 
-::: warning 缺口不会被随后的事件修补
-漏掉的那些已经没了。序号买到的是界面**知道**该重读 —— 没有它，面板照样渲染、数字看着都合理，而其
-中一个是错的。
-:::
+## 下一步
 
-## 插件自己的事件
-
-插件在清单里声明它发出的事件，本地 headless 接收者通过 `handles` 选择事件并实现 `on_event`，
-详见[编写逻辑](/zh/plugins/authoring)。有两条规则：
-
-- **完整包拥有自己的命名空间。** `@acme/notes` 和 `@other/notes` 不能冒充彼此发射事件。
-- **先声明再发出。** 发出未声明的名字会被拒绝，因为只能靠猜的订阅者，订阅到的是一个可能永远不来的
-  东西。
-
-一个插件如何声明见[清单](/zh/plugins/manifest)，发出事件需要什么见[能力](/zh/reference/capabilities)。
+- [编写逻辑](/zh/plugins/authoring)。
+- [编写界面](/zh/plugins/ui)。
+- [能力](/zh/reference/capabilities)。

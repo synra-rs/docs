@@ -1,124 +1,68 @@
 ---
-title: The Manifest
+title: Manifest
 ---
 
-# 清单
+# Manifest
 
-每个插件的包根目录都有一个 `manifest.json`。它说明插件是什么、由哪个产物实现、以及它被允许做什么。宿主在运行
-任何东西之前读它，而 `synra-plugin verify` 在你发布之前检查它。
+宿主在执行插件前读取 `manifest.json`，其中声明标识、运行文件和请求能力。
 
-```jsonc
+## 最小混合插件示例
+
+```json
 {
   "$schema": "https://synra-app.dev/schema/manifest/v1.json",
-
-  "schemaVersion": 1,
-  "id": "@synra-plugin/github-bridge",
-  "version": "1.2.0",
-  "title": "GitHub Bridge",
-  "description": "Recognises GitHub links and opens them, completing shorthand like owner/repo.",
-
-  "publisher": {
-    "id": "synra",
-    "name": "Synra",
-    "pubkey": "…"                       // ed25519, base64
-  },
-
-  "sdk": { "min": "1.0.0" },
+  "id": "@your-scope/hello-synra",
+  "version": "0.1.0",
+  "title": "Hello Synra",
+  "description": "A hybrid plugin for Synra.",
+  "publisher": { "id": "your-publisher-id" },
+  "sdk": { "min": "0.1.0" },
   "wit": "synra:plugin@1.0.0",
-
   "runtime": {
-    "headless": { "artifact": "plugin.wasm" },
+    "headless": { "artifact": "plugin.wasm", "stateful": false },
     "ui": { "artifact": "ui.zip", "entry": "index.html" }
   },
-
-  "capabilities": [
-    { "cap": "platform:open-url", "reason": "Open the link the user shared." },
-    { "cap": "network:fetch:api.github.com", "optional": true,
-      "reason": "Resolve private repositories. The plugin works without it." }
-  ],
-
-  "shareHandlers": [
-    { "kinds": ["text", "url"], "description": "GitHub links and owner/repo shorthand" }
-  ],
-
-  "events": [
-    {
-      "name": "_plugin.@synra-plugin/github-bridge.opened",
-      "payload": {
-        "type": "object",
-        "required": ["url"],
-        "properties": { "url": { "type": "string", "maxLength": 2048 } },
-        "additionalProperties": false
-      }
-    }
-  ],
-
-  "handles": [
-    { "event": "_synra.transfer.completed" }
-  ],
-
-  "actions": [
-    {
-      "name": "open-url",
-      "description": "Open a URL on this device",
-      "args": {
-        "type": "object",
-        "properties": { "url": { "type": "string" } },
-        "required": ["url"]
-      }
-    }
-  ],
-
-  "pages": [
-    { "key": "home", "title": "GitHub Bridge", "path": "/home" }
-  ]
+  "capabilities": []
 }
 ```
 
-## 最关键的几个字段
+示例不请求能力，但运行前仍需要用户明确批准。
 
-其中四个决定插件的行为，而把它们写错，通常就是插件被拒绝的原因。
+## 运行文件
 
-### `runtime`
+`runtime.headless` 必填，指向组件；`runtime.ui` 添加页面包。
+逻辑需要在多次调用间保留实例状态时，设置 `stateful`。
+UI 包补充组件，不支持纯 UI 插件。
 
-`headless` 是必需的，指向实现你逻辑的那个 `.wasm` 组件。`ui` 是可选的，用来加一个界面。这里**故意**没有
-`kind`、`isolation` 或 `target` 字段 —— 插件如何被运行是宿主的决定，不是插件的。
+文件路径相对于构建包根目录，UI 的 `entry` 相对于 ZIP 内部。
 
-### `capabilities`
+## 能力
 
-插件可以做的一切。这份清单会被检查两次：安装时对照产物**实际引用**的导入，以及**每一次调用**时。当插件没有它
-也能工作时，把条目标上 `optional: true` —— 这样即使用户拒绝了它，插件仍会激活。
+每项请求能力应有具体用途。安装检查实际导入，执行检查当前授权与范围。
+接收侧能力可授权接收端服务，不会因此增加可直接调用的原生函数。
 
-::: warning 声明得比导入的少
-如果产物导入了这里没覆盖的宿主函数，安装会失败。正是这项检查让"插件做不到它声明之外的事"成为**事实**，而不是
-一句愿望。
-:::
+可选功能按需要使用 `optional: true`，并处理拒绝。
+声明能力不表示当前宿主或平台已经实现它。
 
-### `events` 与 `handles`
+## 动作与事件
 
-事件名称使用完整包身份，例如 `_plugin.@synra-plugin/github-bridge.opened`；发布者和包名前缀都参与所有权判断，不能省略。
+`actions` 声明可调用动作，`events` 声明发出事件的模式，`handles` 声明接收选择器。
+插件事件名称包含完整 scoped id：
+`_plugin.@your-scope/hello-synra.ready`。
 
-`events` 是*你*发出的事件，每个名字都必须住在你自己的 `_plugin.<full-plugin-id>.` 命名空间下。`handles` 是你想接收的事
-件 —— 内置的如 `_synra.transfer.completed`，或你自己的。
+Verify 检查实际组件 ABI 和导入，不能证明所有动作分支及事件模式都实现正确；
+仍需在真实宿主调用验证。
 
-声明你发出的事件不是记账：它正是让宿主能在安装时检查"已配对设备上那份你的插件，是否仍看得懂你发的东西"的东西。
-加一个可选字段，仍然兼容；加一个必需字段，就不兼容了。
+## Schema 与版本对齐
 
-### 让它们与代码保持一致
+使用[清单 schema](/schema/manifest/v1.json)获得编辑器校验，
+再用匹配版本 CLI 的 verify 完成运行时相关检查。
+当前 schema 作为开发契约维护，不能仅从 `v1` 路径推断不可变的发布兼容承诺。
 
-清单声明 `actions`、`handles` 与 `events`；产物实现它们。声明了一个从未实现的条目，或实现了从未声明的条目，都会
-被 `synra-plugin verify` 抓到。
-
-## 完整参考
-
-完整的字段列表与每一条约束，就是 schema 本身：
-
-- <https://synra-app.dev/schema/manifest/v1.json>
-
-你的编辑器会从 `$schema` 那一行自动读取它，于是你打字时就有补全与内联校验。那个 URL 是一份**已发布的契约**：它
-永不改变。字段在新版本里增加，而不是就地修改。
+保持 SDK、CLI 和宿主匹配。重建会移除过期签名，因此对最终包签名。
 
 ## 下一步
 
-- [项目结构](/zh/plugins/structure) —— 文件是如何摆放的。
-- [编写逻辑](/zh/plugins/authoring) —— Rust 那一侧。
+- [能力](/zh/reference/capabilities)。
+- [编写逻辑](/zh/plugins/authoring)。
+- [签名与打包](/zh/plugins/publishing)。

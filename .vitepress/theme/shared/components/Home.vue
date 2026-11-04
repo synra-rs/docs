@@ -25,14 +25,14 @@ const isZh = computed(() => page.value.relativePath.startsWith('zh/'))
 const t = computed(() => (isZh.value
   ? {
       tagline: '一台设备上的一个动作，变成另一台设备上的一次执行。',
-      sub: '两端都是宿主：都能分享，也都能执行。具体做什么由插件决定，插件跑在内核的沙箱里。',
+      sub: '连接设备、管理插件与权限。插件提供具体功能，两端宿主共同处理确认与执行。',
       start: '开始使用',
       plugins: '写一个插件',
       repo: 'GitHub',
     }
   : {
       tagline: 'One action on one device becomes an execution on another.',
-      sub: 'Both sides are hosts: either can share, either can execute. What happens is defined by plugins, running in the kernel\'s sandbox.',
+      sub: 'Connect devices and manage plugins and permissions. Plugins provide the features; both hosts handle consent and execution.',
       start: 'Get started',
       plugins: 'Write a plugin',
       repo: 'GitHub',
@@ -40,16 +40,16 @@ const t = computed(() => (isZh.value
 
 const features = computed(() => (isZh.value
   ? [
-      { title: '两端对等', body: '桌面与手机都是宿主。不存在"只有电脑能装插件"。' },
+      { title: '两端协作', body: '手机与电脑都是宿主，具体原生能力以当前平台为准。' },
       { title: '插件在沙箱里', body: '逻辑是 Wasm 组件，能力由内核强制，而不是靠约定。' },
-      { title: '一次操作可追溯', body: '从界面上的点击到对端的执行结果，共用同一个 trace。' },
-      { title: '安装即可用', body: '插件在作者机器上构建并签名，用户机器上不编译任何东西。' },
+      { title: '确认后再执行', body: '配对、插件权限和本次操作分别处理，等待与结果都有明确状态。' },
+      { title: '构建后安装', body: '组件与页面一起交付，安装时校验，确认并启用后使用。' },
     ]
   : [
-      { title: 'Two equal hosts', body: 'Desktop and phone are both hosts. Neither is "the one that runs plugins".' },
+      { title: 'Two cooperating hosts', body: 'Phone and computer both host plugins. Native capabilities depend on the platform.' },
       { title: 'Plugins in a sandbox', body: 'Logic is a Wasm component; the kernel enforces capabilities rather than trusting a convention.' },
-      { title: 'One trace per action', body: 'From the tap in the UI to the result on the other device, one shared trace.' },
-      { title: 'Install, then use', body: 'Plugins are built and signed on the author\'s machine. Nothing is compiled on the user\'s.' },
+      { title: 'Consent before effects', body: 'Pairing, plugin grants and the current request have distinct decisions and states.' },
+      { title: 'Build, then install', body: 'Component and page ship together, are checked on install, then approved and enabled.' },
     ]))
 </script>
 

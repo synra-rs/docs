@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A two-device demo: a phone shares a link, and it opens in a browser on the desktop.
+ * A two-device illustration: explicit pairing followed by plugin synchronization.
  *
  * Written as a single scripted sequence rather than two independent animations. The point being
  * made is the *transfer* between the two panels, so the timeline is one thing that advances --
@@ -9,6 +9,7 @@
  * The lines are fixed strings, not narration invented per render: this is the product's primary
  * journey, and it should read the same every time someone loads the page.
  */
+import { useData } from 'vitepress'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 interface Line {
@@ -20,17 +21,29 @@ interface Line {
   dim?: boolean
 }
 
-const LINES: Line[] = [
-  { side: 'phone', text: '$ open the share sheet on a GitHub link', dim: true },
-  { side: 'phone', text: '  → share to Synra' },
-  { side: 'phone', text: '  → plugin matches: github-bridge', dim: true },
-  { side: 'phone', text: '  → target: laptop (paired, online)', dim: true },
-  { side: 'desktop', text: '← intent received  trace 4f2a…c1' },
-  { side: 'desktop', text: '  → action open-url', dim: true },
-  { side: 'desktop', text: '  → capability platform:open-url  granted', dim: true },
-  { side: 'desktop', text: '✓ opened in the default browser' },
-  { side: 'phone', text: '✓ done' },
-]
+const { page } = useData()
+const isZh = computed(() => page.value.relativePath.startsWith('zh/'))
+const LINES = computed<Line[]>(() => isZh.value
+  ? [
+      { side: 'phone', text: '→ 向电脑发起配对' },
+      { side: 'phone', text: '  配对码 418205 · 等待确认', dim: true },
+      { side: 'desktop', text: '← 收到配对请求 · 418205' },
+      { side: 'desktop', text: '✓ 核对后同意' },
+      { side: 'phone', text: '✓ 配对完成' },
+      { side: 'phone', text: '→ 同步 Starter 插件' },
+      { side: 'desktop', text: '✓ 收到并校验插件包' },
+      { side: 'desktop', text: '  检查权限，确认并启用', dim: true },
+    ]
+  : [
+      { side: 'phone', text: '→ request pairing with laptop' },
+      { side: 'phone', text: '  code 418205 · waiting', dim: true },
+      { side: 'desktop', text: '← pairing request · 418205' },
+      { side: 'desktop', text: '✓ check code and accept' },
+      { side: 'phone', text: '✓ pairing complete' },
+      { side: 'phone', text: '→ sync Starter plugin' },
+      { side: 'desktop', text: '✓ package received and checked' },
+      { side: 'desktop', text: '  review grants, approve, enable', dim: true },
+    ])
 
 /** How long each line stays hidden. Slow enough to read, fast enough to reach the end. */
 const STEP_MS = 520
@@ -38,15 +51,15 @@ const STEP_MS = 520
 const shown = ref(0)
 let timer: ReturnType<typeof setInterval> | undefined
 
-const phoneLines = computed(() => LINES.slice(0, shown.value).filter(l => l.side === 'phone'))
-const desktopLines = computed(() => LINES.slice(0, shown.value).filter(l => l.side === 'desktop'))
+const phoneLines = computed(() => LINES.value.slice(0, shown.value).filter(l => l.side === 'phone'))
+const desktopLines = computed(() => LINES.value.slice(0, shown.value).filter(l => l.side === 'desktop'))
 
 function start() {
   stop()
   shown.value = 0
   timer = setInterval(() => {
     shown.value += 1
-    if (shown.value >= LINES.length)
+    if (shown.value >= LINES.value.length)
       stop()
   }, STEP_MS)
 }
@@ -66,7 +79,7 @@ onBeforeUnmount(stop)
   <div class="synra-demo-wrap">
     <div class="synra-panel">
       <div class="synra-panel__label">
-        phone
+        {{ isZh ? '手机' : 'phone' }}
       </div>
       <div class="synra-demo">
         <div
@@ -82,7 +95,7 @@ onBeforeUnmount(stop)
 
     <div class="synra-panel">
       <div class="synra-panel__label">
-        laptop
+        {{ isZh ? '电脑' : 'laptop' }}
       </div>
       <div class="synra-demo">
         <div
@@ -97,7 +110,7 @@ onBeforeUnmount(stop)
     </div>
 
     <button v-if="shown >= LINES.length" class="synra-replay" type="button" @click="start">
-      replay
+      {{ isZh ? '重播' : 'replay' }}
     </button>
   </div>
 </template>

@@ -4,97 +4,56 @@ title: Quick Start
 
 # Quick Start
 
-Two devices, one action, about thirty seconds. This walks the primary journey: share something on
-your phone and have it open on your desktop.
+Start with two running hosts and one installed plugin. This guide covers the actual device and
+plugin workflow without assuming a built-in sharing or clipboard feature.
 
-## Before you start
+## 1. Prepare both devices
 
-Install Synra on both devices ([Installation](/guide/installation)) and make sure they are on the
-same network — the same Wi-Fi, or the same wired network. Nothing else is required: there is no
-account to create and no server to point at.
+Run compatible builds on the same reachable local network. Keep mobile Synra in the foreground.
+See [Installation](/guide/installation) for the available workflow.
 
-## 1. Pair the two devices
+## 2. Pair
 
-Open **Devices** on either device. The other one appears in the list once it has been seen and has
-answered a handshake.
+1. Open **Devices**, scan and choose the other device.
+2. Start pairing. Both sides display the same six-digit code.
+3. Check the code. The initiator waits and can cancel; the receiver can accept, refuse or block.
+4. Accept on the receiver. Both sides show the completed pairing.
 
-```
-phone                          laptop
-  │  Devices  →  tap "laptop"     │
-  │  ─────── pair request ──────▶ │
-  │                               │  a prompt appears
-  │  ◀───── accepted ───────────  │
-  │  both now show "paired"       │
-```
-
-Pairing is a one-time step. Once two devices are paired they reconnect on their own whenever both
-are running and reachable.
-
-::: tip If the other device does not appear
-Give it a few seconds: discovery broadcasts and waits. If it still does not show up, open
-**Settings → Diagnostics** on both devices and compare what they report — see
-[Troubleshooting](/guide/troubleshooting).
+::: tip Wait for the decision
+A discovered device or an established connection does not finish pairing.
+The receiver must explicitly accept the request.
 :::
 
-## 2. Share something
+## 3. Install and approve a plugin
 
-On your phone, find a link in any app and use the system share sheet. Choose **Synra**.
+Open **Plugins** and install a package or folder. Review its declared capabilities, approve the
+desired permissions and enable it. A plugin requesting no capabilities still needs explicit
+permission to run.
 
-```
-Share sheet  →  Synra
-```
+For a cross-device feature, install the matching plugin on both hosts, or use **Sync to devices**
+from the plugin's management actions. Check the receiving device's confirmation and permissions.
 
-Synra looks through the installed plugins for one that recognises the content. With no plugins
-installed, it offers the built-in fallback actions instead — sending the text to the other device's
-clipboard among them.
+## 4. Open the plugin
 
-## 3. Confirm the target
+Choose **Open** and follow the plugin's own page. Select a target explicitly.
+Some actions require a separate confirmation on the target even when devices are paired.
 
-When a plugin claims the content, Synra shows what it intends to do and where:
-
-| | |
+| Plugin | What to try |
 | --- | --- |
-| Action | Open URL |
-| Target | `laptop` |
-| Plugin | `github-bridge` |
+| Starter | Inspect host information and select a paired computer |
+| Touchpad | Connect from the phone, allow the session on Windows, then move or tap the touch surface |
 
-Pick a different device from the list if you have more than one, then confirm.
+Return using the host's native bar or system Back on Android, or close the plugin window on desktop.
 
-## 4. Watch it happen
+## If something does not work
 
-The other device receives the action, checks that the plugin is installed and that the capability
-is granted, runs it, and reports back. The originating device shows the result, including how long
-it took.
+Check these in order: the device is online, the plugin exists on the required hosts, its permissions
+are approved, it is enabled, and any current request has been accepted.
 
-```
-phone                                     laptop
-  │  intent  github-bridge / open-url        │
-  │  ──────────────────────────────────────▶ │
-  │                                          │  capability platform:open-url granted
-  │                                          │  opens the URL in the default browser
-  │  ◀────── result: ok, 41 ms ────────────  │
-  │  "opened on laptop"                      │
-```
+See [Troubleshooting](/guide/troubleshooting) for discovery logs and connection failures.
 
-## What to try next
+## Next
 
-- **Send a file.** Use the share sheet with a file, or drag one onto the window on the desktop.
-- **Copy on one device, paste on the other.** Enable clipboard sync in **Settings → Clipboard**;
-  it is off by default because clipboard contents are often sensitive.
-- **Install a plugin.** Open **Plugins**, browse, and install. Installed plugins can be sent to
-  your other devices with one tap instead of installing them twice.
-- **Write your own.** [Your First Plugin](/plugins/getting-started) takes about thirty minutes.
-
-## Command line equivalent
-
-If you prefer a terminal, or want to check that the same journey works without the user interface:
-
-```bash
-synra devices --output json          # the devices this kernel has seen
-synra send --to <device-id> --text "https://example.com"
-synra logs --lines 50                # the kernel's log, most recent last
-synra status                         # its state and its links
-```
-
-`synra send` carries text or a file. It does not open a URL on the other device: opening one is what a plugin
-does with what it receives, and the kernel's own job is the moving.
+- [Devices & Pairing](/guide/devices-and-pairing).
+- [Plugin management](/guide/plugins).
+- [Tasks & Transfers](/guide/transfers).

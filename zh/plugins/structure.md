@@ -1,73 +1,55 @@
 ---
-title: Project Structure
+title: 目录结构
 ---
 
-# 项目结构
+# 目录结构
 
-一个插件的目录很小，里面每个文件只有一件事要做。本页说明哪件是哪件。
+区分源码、构建包与运行数据。
 
-## 文件
+## 源码布局
 
-```
+```text
 hello-synra/
-├─ manifest.json      what the plugin is and what it needs
-├─ Cargo.toml         how the Rust is built
-├─ src/lib.rs         the plugin's behaviour
-├─ README.md          for a person reading the repository
-└─ .gitignore
+├─ manifest.json
+├─ Cargo.toml
+├─ Cargo.lock
+├─ src/lib.rs
+└─ ui/index.html
 ```
 
-`hybrid` 模板在 Rust 组件之外增加界面源码，两部分共用一份清单。
-使用前端框架时，可以增加自己的 `package.json` 和构建脚本。
+无界面项目没有 `ui/`。使用前端框架时，可以增加包管理器配置和独立的前端构建输出。
 
-## `manifest.json`
+## 包布局
 
-内核在加载任何东西之前先读它。用户的安装提示就是从这份文件生成的，所以这里改一个字段，就是改用户被请求
-批准的内容。
+```text
+dist/
+├─ manifest.json
+├─ plugin.wasm
+└─ ui.zip
+```
 
-- 标识符与版本。
-- 必需的 `runtime.headless` 组件与可选的 `runtime.ui` 包。
-- 要声明哪些能力、要发出哪些事件。
-- 插件处理什么：分享目标、动作、收到的事件。
+清单快照指向包内相对路径，UI 入口是 ZIP 内的文件。
+不要把 Cargo 的 `target/` 或已安装依赖目录打进包。
 
-字段见[清单](/zh/plugins/manifest)，确切形状见 [schema](/schema/manifest/v1.json)。
+## 构建配置
 
-## `Cargo.toml`
-
-| 配置 | 为什么 |
+| 位置 | 控制内容 |
 | --- | --- |
-| `crate-type = ["cdylib"]` | 插件是内核加载的库，不是程序 |
-| `synra-plugin-sdk` | 宿主调用，仅此而已 |
-| `opt-level = "s"`、`lto = true` | 插件加载一次、调用多次，而它的体积是要下载的 |
-| `panic = "abort"` | 没有东西可以往回展开 |
+| 源码清单 | 标识、SDK 要求、运行文件和请求能力 |
+| Cargo.toml | Rust crate、SDK 提交和可选 UI 构建命令 |
+| Cargo.lock | 经审查的依赖解析 |
+| UI 工程 | 页面逻辑、内置资源及相对资源路径 |
 
-::: info 为什么 SDK 自己不依赖任何东西
-一个拖进异步运行时的插件，会被 `verify` 拒绝：调度归内核所有，自带一套的插件是内核看不见其工作的插件。这
-同时也是把产物做小的决定 —— 同一件事的另一面。
-:::
+插件使用 `cdylib`，由 CLI 完成组件编码。
+框架 UI 通过 `package.metadata.synra.ui` 配置，见[编写逻辑](/zh/plugins/authoring#构建完整包)。
 
-## `src/lib.rs`
+## 运行数据
 
-行为所在：内核调用的函数，以及插件回调宿主的调用。一个插件必须提供哪些函数，由它的 `runtime` 条目决定 ——
-每个插件都实现完整 headless WIT world；hybrid 再增加 UI 包。
+插件存储与安装文件使用不同路径，更新代码不需要覆盖已保存数据。
+不要把秘密或签名私钥放入 UI 包。
 
-[编写逻辑](/zh/plugins/authoring) 讲这一部分。
+## 下一步
 
-## 构建它
-
-```bash
-synra-plugin build
-```
-
-构建在 `dist/` 生成完整安装目录，包含 manifest 快照、headless 组件，以及 hybrid 的 `ui.zip`。清单中的 artifact 路径相对安装包根。静态 UI 默认来自源码 `ui/`；框架构建配置见[编写逻辑](/zh/plugins/authoring#构建完整安装包)。失败重建保留旧包，成功重建后重新签名。
-
-::: warning `target/` 不是插件的一部分
-它是 Rust 的构建目录，而插件的产物是它产出的**一个** `.wasm`。把 `target/` 打包进去，就是让用户下载几百
-兆只为了拿一个文件。
-:::
-
-## 接下来
-
-- [编写逻辑](/zh/plugins/authoring) —— Rust 那一侧。
-- [清单](/zh/plugins/manifest) —— 每个字段。
-- [测试](/zh/plugins/testing) —— 发布前该检查什么。
+- [Manifest](/zh/plugins/manifest)。
+- [编写逻辑](/zh/plugins/authoring)。
+- [测试](/zh/plugins/testing)。

@@ -1,92 +1,74 @@
 ---
-title: Your First Plugin
+title: 第一个插件
 ---
 
-# 你的第一个插件
+# 第一个插件
 
-插件是一个内核加载的 WebAssembly 组件，外加一份说明"它是什么、它需要什么"的清单。跑起来大约需要三十
-分钟。
+每个 Synra 插件都包含 Rust/Wasm 组件。需要页面时，选择 hybrid 模板。
 
-本页从空目录走到一个内核愿意安装的插件。
+## 准备工具链
 
-## 需要什么
+使用所选 core 提交要求的开发工具链，再安装模块目标和作者 CLI。
+下面固定一组已审查的 SDK/CLI 版本：
 
-| 工具 | 为什么 |
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install synra-plugin-cli --git https://github.com/synra-rs/synra-core.git --rev ffec0a2dd3833346bccc6f75bb49447c4e2cc9eb --locked
+```
+
+Rust SDK 当前从源码使用，不要依赖假定存在的 crates.io 发布版本。
+
+## 创建项目
+
+```sh
+synra-plugin new @your-scope/hello-synra --template hybrid --dir hello-synra --title "Hello Synra"
+cd hello-synra
+```
+
+| 模板 | 内容 |
 | --- | --- |
-| Rust | 插件是用它写的 |
-| `wasm32-wasip2` 目标 | 插件就编译成它 |
-| `synra-plugin` | 生成脚手架、构建、检查 |
+| `headless` | Rust 组件与清单 |
+| `hybrid` | 相同组件，以及 UI 包 |
 
-```bash
-rustup target add wasm32-wasip2
-cargo install synra-plugin
+不支持纯 UI 模板。插件标识使用 `@scope/name`，保留 scope 会被拒绝。
+
+## 固定 SDK
+
+脚手架会写入版本依赖。构建这个开发示例前，将它替换为与 CLI 相同的 Git 提交：
+
+```toml
+[dependencies]
+synra-plugin-sdk = { git = "https://github.com/synra-rs/synra-core.git", rev = "ffec0a2dd3833346bccc6f75bb49447c4e2cc9eb" }
 ```
 
-## 生成脚手架
+提交 Cargo.lock，并使用匹配宿主。SDK 生成的 guest 绑定提供完整 WIT world；
+添加逻辑时保留生成的入口结构。
 
-```bash
-synra-plugin new @your-scope/hello-synra --title "Hello Synra"
-```
+## 构建与校验
 
-标识符是 `@scope/name`。scope 归你，其中三个是保留的：`synra`、`core`、`system`。其余一切 —— 目录名、
-产物名、缓存路径 —— 都由它派生。
-
-::: info 为什么标识符在写任何东西之前就被校验
-它出现在每一个路径和每一条能力字符串里，所以事后才发现它不合法，意味着一次改名。脚手架按内核在安装时
-的同一套规则校验它 —— 于是这个工具写出来的插件，就是能装上架的插件。
-:::
-
-`--template` 决定你拿到什么：
-
-| 模板 | 是什么 |
-| --- | --- |
-| `headless` | 只有 WebAssembly，没有界面 |
-| `hybrid` | 两半都有，共用一份清单 |
-
-## 生成了什么
-
-```
-hello-synra/
-├─ manifest.json
-├─ Cargo.toml
-├─ src/lib.rs
-└─ README.md
-```
-
-`src/lib.rs` 是插件行为所在。`manifest.json` 说明那个行为是什么。两者必须一致 —— 哪些字段会与代码对照，
-见[清单](/zh/plugins/manifest)。
-
-## 构建
-
-```bash
+```sh
 synra-plugin build
-```
-
-它在 `dist/` 生成包含 manifest 和 `plugin.wasm` 的安装目录；hybrid 还包含 `ui.zip`。release profile 已经按体积调好，因为插件的体积是用
-户每次安装都要付的代价。
-
-## 检查
-
-```bash
 synra-plugin verify --dir dist
 ```
 
-构建后校验 `dist/`，检查实际组件 ABI、导入声明覆盖和可选 UI ZIP。缺失或读取失败均导致失败，不能跳过导入检查。
+构建会编译模块、编码组件、打包可选 UI，并在替换 `dist/` 前校验实际包。
+直接运行 Cargo 得到的文件不是可安装的完整组件包。
 
-::: tip `verify` 跑的就是内核在安装时跑的那些检查
-它存在的原因，是作者在这里能对失败做点什么，而在安装时不能。一个在用户机器上装不上的插件，是用户不会再
-试第二次的插件。
+::: tip 检查真正用于安装的文件
+校验构建后的 `dist/`，不要只看源码清单。混合插件需要 `plugin.wasm` 和有效 UI ZIP。
 :::
 
-## 试一试
+## 安装并打开
 
-把构建生成的 `dist/` 安装目录拷到跑着 Synra 的设备上，从文件夹安装。不在注册表里的插件从目录安装 —— 这也是插件开发的方式：
-改、构建、安装、看。
+在 Synra 中安装构建后的文件夹，明确确认插件、授予所需能力并启用。
+空能力列表也需要批准。混合插件从管理入口打开。
 
-## 接下来看什么
+独立的 [Starter](https://github.com/synra-rs/synra-plugin-starter) 和
+[Touchpad](https://github.com/synra-rs/synra-plugin-touchpad) 仓库提供具体示例，
+各自固定经过审查的依赖版本。
 
-- [项目结构](/zh/plugins/structure) —— 每个文件是干什么的。
-- [编写逻辑](/zh/plugins/authoring) —— Rust 那一侧。
-- [构建界面](/zh/plugins/ui) —— 如果它需要画东西。
-- [测试](/zh/plugins/testing) —— 发布前该检查什么。
-- [发布](/zh/plugins/publishing) —— 签名与用户看到什么。
+## 下一步
+
+- [目录结构](/zh/plugins/structure)。
+- [编写逻辑](/zh/plugins/authoring)。
+- [编写界面](/zh/plugins/ui)。

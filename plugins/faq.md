@@ -4,69 +4,56 @@ title: FAQ
 
 # FAQ
 
-## Do I need to write Rust?
+## Does every plugin need Rust?
 
-Yes. Every plugin includes a Rust headless component. Add a UI with the `hybrid` template;
-the page may use JavaScript or TypeScript, but it accompanies the Rust component.
+Yes. Every supported package includes a Rust/Wasm component. A hybrid adds a page;
+a UI-only package is refused.
 
-## Why WebAssembly?
+## Why does a no-permission plugin need approval?
 
-Because it is the only sandbox that answers the question a user actually has: not "can this code read my
-memory" but "what can it do to my system". A plugin gets no filesystem, no network and no devices except the
-ones it declared and a user approved.
+An empty capability list means no additional capabilities are requested.
+Running installed code is still an explicit user decision. Choose **Allow running**, then enable it.
 
-::: info WebAssembly is not the whole answer
-It says a plugin cannot make a syscall. It does not say which hosts it may reach, which directories it may
-touch or which devices it may send to. Those are the capabilities, and they are what the install prompt is
-built from.
-:::
+## Does installing the JS client create a connection?
 
-## How big is a plugin?
+No. `@synra/client` contains declarations. Synra injects the runtime client;
+`@synra/testkit` provides a mock for development.
 
-A headless plugin is tens of kilobytes: the release profile is tuned for size, and the SDK carries no
-dependencies of its own. A plugin with an interface is larger by whatever its UI bundle is.
+## Can a plugin directly access the OS?
 
-## Can two plugins see each other's data?
+Wasm uses host imports, capability checks and execution limits.
+The UI uses the injected client and the host's browser policy. Neither a declaration nor pairing
+bypasses current grants or a required receiver decision.
 
-No. Storage is namespaced by plugin, and a plugin's declared capabilities are checked on every call. A plugin
-cannot read another's values even if it guessed a key.
+## Does an API in the SDK work on every host?
 
-## Can a plugin talk to another device?
+No. Check the host implementation and platform support.
+For example, secure-storage and generic headless device-send imports are explicitly refused
+by the current application adapter. Pointer sessions use a separate implemented service.
 
-Yes, if it declares `device:send:*` or names specific devices. The permission is what the user approved, and
-the device list a plugin receives carries identifiers rather than addresses — an address is not something a
-plugin was granted.
+## Can I use a device name as a target?
 
-## What happens when a plugin is updated?
+Use its canonical UUID. Names are display text and can change or collide.
+A device discovered as `desktop` is a valid computer candidate without identifying its exact OS.
 
-The kernel installs the new version, calls `migrate` if the stored schema version is older, and the plugin
-keeps its stored data. A change that removes a field is a major version, which is what tells users the update
-is not the one they had.
+## Can a plugin keep working after I leave its page?
 
-## What happens when a plugin crashes?
+Only work with an appropriate host-owned lifetime can outlive a page.
+An interactive control session ends when its page is hidden or closed, permissions change or
+the connection is lost. Mobile background execution is not guaranteed.
 
-It is stopped, and nothing else is. A plugin runs in its own instance with a time budget and a memory ceiling,
-so a plugin that traps or runs out of fuel is one the kernel refuses to keep calling rather than one that takes
-the application down.
+## Are paired connections encrypted?
 
-## Can a plugin run in the background?
+Current device communication uses plain TCP. The pairing code is a human check, not a shared
+encryption secret. Use a trusted local network.
 
-On desktop, yes — the kernel is a daemon and a plugin can be loaded without a window. On mobile there is no
-always-on background process, so work may be suspended and resumed by the system.
+## What does a successful test prove?
 
-## Why is my call refused with `capability_denied`?
-
-The manifest does not declare the capability the call needs, or the user did not grant it. Both look the same
-at run time and are different to fix — the first is a manifest edit, available with `synra-plugin verify`, and
-the second is a prompt.
+See [Testing](/plugins/testing). A browser preview, real component, loopback connection and
+physical platform effect are different evidence.
 
 ## Where do I report a problem?
 
-The issue tracker for the repository you got the plugin from. For the kernel, the CLI or the SDK, see the links
-in the footer.
-
-## Next
-
-- [Your First Plugin](/plugins/getting-started) — start here.
-- [Capabilities](/reference/capabilities) — what a declaration means.
-- [Error Codes](/reference/errors) — what a refusal is telling you.
+Use the plugin repository for plugin behavior, the application repository for page hosting and
+management, and the core repository for the kernel, SDK or author tool. Include versions and
+the first error without private data.

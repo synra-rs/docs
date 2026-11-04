@@ -125,7 +125,7 @@ report rather than guessing.
 Those three must agree with `public/schema/` and with `synra-core`:
 
 - a field name in a table is the field name in the code, spelled the same way;
-- a code block showing a manifest snippet is checked by `pnpm check` once the schema comparison job
-  exists;
+- `pnpm check:schema` validates schema files and reviewed structural digests; it does not currently
+  validate every Markdown example against the Rust manifest parser, so inspect examples against that source;
 - if you add a section here, check whether the schema's `description` for the same thing needs the
   same correction. They are read side by side.

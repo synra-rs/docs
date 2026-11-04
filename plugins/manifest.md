@@ -4,128 +4,68 @@ title: The Manifest
 
 # The Manifest
 
-Every plugin has a `manifest.json` at the root of its package. It says what the plugin is, which
-artifact implements it, and what it is allowed to do. The host reads it before running anything,
-and `synra-plugin verify` checks it before you publish.
+The host reads `manifest.json` before executing a plugin. It declares identity, runtime artifacts
+and requested capabilities.
 
-```jsonc
+## Minimal hybrid example
+
+```json
 {
   "$schema": "https://synra-app.dev/schema/manifest/v1.json",
-
-  "schemaVersion": 1,
-  "id": "@synra-plugin/github-bridge",
-  "version": "1.2.0",
-  "title": "GitHub Bridge",
-  "description": "Recognises GitHub links and opens them, completing shorthand like owner/repo.",
-
-  "publisher": {
-    "id": "synra",
-    "name": "Synra",
-    "pubkey": "…"                       // ed25519, base64
-  },
-
-  "sdk": { "min": "1.0.0" },
+  "id": "@your-scope/hello-synra",
+  "version": "0.1.0",
+  "title": "Hello Synra",
+  "description": "A hybrid plugin for Synra.",
+  "publisher": { "id": "your-publisher-id" },
+  "sdk": { "min": "0.1.0" },
   "wit": "synra:plugin@1.0.0",
-
   "runtime": {
-    "headless": { "artifact": "plugin.wasm" },
+    "headless": { "artifact": "plugin.wasm", "stateful": false },
     "ui": { "artifact": "ui.zip", "entry": "index.html" }
   },
-
-  "capabilities": [
-    { "cap": "platform:open-url", "reason": "Open the link the user shared." },
-    { "cap": "network:fetch:api.github.com", "optional": true,
-      "reason": "Resolve private repositories. The plugin works without it." }
-  ],
-
-  "shareHandlers": [
-    { "kinds": ["text", "url"], "description": "GitHub links and owner/repo shorthand" }
-  ],
-
-  "events": [
-    {
-      "name": "_plugin.@synra-plugin/github-bridge.opened",
-      "payload": {
-        "type": "object",
-        "required": ["url"],
-        "properties": { "url": { "type": "string", "maxLength": 2048 } },
-        "additionalProperties": false
-      }
-    }
-  ],
-
-  "handles": [
-    { "event": "_synra.transfer.completed" }
-  ],
-
-  "actions": [
-    {
-      "name": "open-url",
-      "description": "Open a URL on this device",
-      "args": {
-        "type": "object",
-        "properties": { "url": { "type": "string" } },
-        "required": ["url"]
-      }
-    }
-  ],
-
-  "pages": [
-    { "key": "home", "title": "GitHub Bridge", "path": "/home" }
-  ]
+  "capabilities": []
 }
 ```
 
-## The fields that matter most
+This example requests no capabilities. It still needs explicit user approval before running.
 
-Four of them decide how the plugin behaves, and getting them wrong is what usually causes a plugin
-to be refused.
+## Runtime artifacts
 
-### `runtime`
+`runtime.headless` is required and names the component. `runtime.ui` adds a page bundle.
+Set `stateful` for logic that needs an instance to retain state between calls.
+A UI bundle supplements the component; UI-only plugins are not supported.
 
-`headless` is required and points at the `.wasm` component that implements your logic. `ui` is
-optional and adds an interface. There is deliberately no `kind`, `isolation` or `target` field —
-how a plugin is run is the host's decision, not the plugin's.
+Artifact paths resolve from the built package root. The UI `entry` resolves inside the ZIP.
 
-### `capabilities`
+## Capabilities
 
-Everything your plugin may do. This list is checked twice: at install time against the imports the
-artifact actually references, and again on every single call. Mark an entry `optional: true` when
-the plugin can work without it — the plugin then still activates if the user declines.
+Every requested capability needs a specific purpose. Installation checks actual imports, and
+execution checks current grants and scopes. A receiver-only capability can authorize a service
+on the receiving host without adding a directly callable native function.
 
-::: warning Declaring less than you import
-If the artifact imports a host function that is not covered here, installation fails. That check is
-what makes "the plugin cannot do more than it declared" true rather than aspirational.
-:::
+Mark optional functionality with `optional: true` where appropriate, and handle refusal.
+A declared capability does not prove that the selected host or platform implements it.
 
-### `events` and `handles`
+## Actions and events
 
-`events` are the events *you* emit, and each name must live under your own `_plugin.<full-plugin-id>.`
-namespace. The owner is the exact scoped package id, including any conventional package prefix;
-publishers with the same package name own different namespaces. `handles` are the events you want to receive — built-in ones such as
-`_synra.transfer.completed`, or your own.
+Declare callable actions in `actions`, emitted event schemas in `events`, and reception selectors
+in `handles`. Plugin event names include the full scoped id:
+`_plugin.@your-scope/hello-synra.ready`.
 
-Declaring your emitted events is not bookkeeping: it is what lets the host check, at install time,
-that a paired device's copy of your plugin still understands what you send. Add an optional field
-and it stays compatible; add a required one and it does not.
+Verify checks the actual component ABI and imports. It cannot prove every action branch or
+declared event schema is implemented correctly; exercise them in a real host.
 
-### Keep them in step with the code
+## Schema and version alignment
 
-The manifest declares `actions`, `handles` and `events`; the artifact implements them. Declaring an
-entry you never implement, or implementing one you never declared, is caught by
-`synra-plugin verify`.
+Use the [manifest schema](/schema/manifest/v1.json) for editor validation and the matching
+CLI's verify command for runtime-specific checks.
+The current schema is maintained as a development contract; do not infer immutable release
+compatibility from the `v1` path.
 
-## Full reference
-
-The complete field list, with every constraint, is the schema itself:
-
-- <https://synra-app.dev/schema/manifest/v1.json>
-
-Your editor reads it automatically from the `$schema` line, which gives you completion and inline
-validation as you type. That URL is a published contract: it never changes. Fields are added in a
-new version, not in place.
+Keep SDK, CLI and host compatible. Rebuilds remove stale signatures, so sign the final package.
 
 ## Next
 
-- [Project Structure](/plugins/structure) — how the files are laid out.
-- [Writing the Logic](/plugins/authoring) — the Rust side.
+- [Capabilities](/reference/capabilities).
+- [Writing the Logic](/plugins/authoring).
+- [Signing & Packaging](/plugins/publishing).

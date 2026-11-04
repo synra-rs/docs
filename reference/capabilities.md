@@ -4,107 +4,80 @@ title: Capabilities
 
 # Capabilities
 
-A capability is permission to do one kind of thing, named as a colon-separated string. A plugin declares the
-ones it needs in its manifest, the user sees that list before installing, and the kernel checks it before
-every host call.
+A capability names an operation and its scope. A manifest declaration, a user grant and a
+host implementation are three different conditions.
 
-This page is the grammar and the catalogue.
+## Grammar
 
-## The grammar
-
-A capability is a domain followed by up to five further segments, separated by colons.
-
-```
-log:write
+```text
+log:info
+device:list
+device:send:01900000-0000-7000-8000-000000000001
 storage:local:read
-device:send:dev_7f3a
 network:fetch:api.example.com
 ```
 
-| Rule | Limit |
+| Constraint | Limit |
 | --- | --- |
-| segments | at most 6 |
-| total length | at most 256 characters |
-| first segment | one of the ten domains below |
-| a segment | never empty, at most 64 characters |
+| Segments | At most 6 |
+| Total encoded length | At most 256 bytes |
+| Prefix segment length | At most 64 bytes |
+| Domain | One of the ten domains below |
 
-::: warning A bare `*` is not a capability
-It would mean every capability there is, and a declaration that said everything is a declaration no user can
-read. A wildcard must be a **whole segment**: `log:*` is fine, `log:w*` is not.
-:::
+Qualifiers have domain-specific syntax, including device UUIDs, event names, network hosts and paths.
+A bare wildcard is not a capability.
 
-## The ten domains
+## Domains
 
-| Domain | Covers | Example |
+| Domain | Purpose | Example |
 | --- | --- | --- |
-| `log` | writing to the log | `log:write` |
-| `event` | emitting and subscribing | `event:emit:status` |
-| `device` | listing and reaching other devices | `device:send:dev_7f3a` |
-| `storage` | the plugin's own storage | `storage:local:read` |
-| `network` | outgoing requests | `network:fetch:api.example.com` |
-| `fs` | files the user chose | `fs:read` |
-| `file` | transfers | `file:transfer:send` |
-| `platform` | the operating system | `platform:notify` |
-| `action` | declaring and invoking actions | `action:invoke:*` |
-| `ui` | pages the plugin draws | `ui:page:settings` |
+| `log` | Logging | `log:info` |
+| `event` | Emission and reception | `event:emit:_plugin.@acme/notes.ready` |
+| `device` | Devices and sessions | `device:list` |
+| `storage` | Plugin storage | `storage:local:read` |
+| `network` | Host-mediated HTTP | `network:fetch:api.example.com` |
+| `fs` | Scoped filesystem access | `fs:read` |
+| `file` | Transfer authority | `file:transfer:send` |
+| `platform` | Native host operations | `platform:notify` |
+| `action` | Declared actions | `action:declare:debug` |
+| `ui` | UI capability declarations | `ui:page:settings` |
 
-There is no `plugin` domain. A plugin that wants its own data uses `storage`, which is the domain whose meaning
-a user already knows.
+The grammar can represent more operations than a particular host implements.
 
-## Patterns and grants
+## Patterns and concrete checks
 
-A manifest may use a wildcard where a whole segment is one; a grant the user gives is a concrete capability.
+A granted pattern is matched against the concrete requested operation.
+`device:send:*` can cover a concrete device UUID; granting one UUID does not authorize every device.
 
-There are **two** wildcards, and the difference is how much they stand for:
-
-| Wildcard | Stands for | Example |
-| --- | --- | --- |
-| `*` | exactly one segment | `device:send:*` — any device, but a device |
-| `**` | one or more segments | `storage:local:**` — anything under this prefix |
-
-- `device:send:*` in a manifest asks for the ability to send to any device.
-- `device:send:dev_7f3a` is what the user grants, naming one device.
-
-A grant covers a request when every segment of the request is matched by the grant's. So a request of
-`log:*` is covered by a grant of `log:write`, while a request of `log:write` is not covered by a grant of
-`log:read`.
-
-::: warning `**` is not `*` written twice
-`*` stops at a segment boundary and `**` does not, so `device:send:*` does not cover `device:send:dev_a:extra`
-and `device:send:**` does. A declaration that meant "one more level" and wrote `**` is one asking for more
-than it needed, and the install prompt says so.
-:::
-
-::: info Why a wildcard is matched segment by segment
-`log:*` must not be covered by a grant of `log` — that is a different capability, and treating a prefix as a
-wildcard is how a plugin acquires permissions nobody granted it.
-:::
-
-## What the user sees
-
-The install prompt shows the capabilities a plugin declares, because that list is the whole of what it can do
-that the user would not expect from its description.
-
-| Declaration | What the user reads |
+| Pattern | Meaning |
 | --- | --- |
-| `storage:local:read` | read its own saved data |
-| `network:fetch:api.example.com` | reach api.example.com |
-| `device:send:*` | send to any paired device |
-| `platform:notify` | show notifications |
+| `*` | One complete segment |
+| `**` | Zero or more segments |
+| Domain-specific qualifier pattern | Parsed according to that qualifier's rules |
 
-::: tip A narrow declaration is a feature, not a restriction
-`network:fetch:api.example.com` tells the user something `network:fetch:*` does not: which server will see
-their data. A plugin that can say that gets installed more often than one that cannot.
-:::
+Do not use prefix strings as implicit wildcards. Keep network host, method, path and event
+patterns within the grammar accepted by the matching host and verify tool.
 
-## What is checked, and when
+## Input-session authority
 
-The check runs before the host function the plugin is calling, not inside it.
+| Side | Required checks |
+| --- | --- |
+| Controller | `device:input`, concrete `device:send:<UUID>`, paired and unblocked target |
+| Receiver | Enabled and approved plugin, current grants, `platform:control-pointer`, current session consent |
 
-- A function that needs a capability is refused when the plugin does not hold it, and the refusal carries
-  `capability_denied`.
-- A function that needs nothing — reading the SDK version, asking which platform this is — is ungated, and
-  the contract says so explicitly. Every other host function names the capability it needs.
-- A plugin that uses an event name it does not own is refused with `protocol_violation`.
+The receiving capability is declared through WIT's receiver-capability metadata.
+It does not expose an ungated native function or let the sender approve the receiver.
 
-See [Error Codes](/reference/errors) for the refusals a capability check produces.
+## Approval and enforcement
+
+Installation validates actual imports against declarations. Calls recheck current authority and
+scope. Permission changes can end ongoing work.
+A no-capability plugin still needs explicit approval to run.
+
+Use the narrowest necessary scope and explain why it is needed.
+An unsupported host reports refusal even when a permission has been granted.
+
+## Next
+
+- [The Manifest](/plugins/manifest).
+- [Error Codes](/reference/errors).

@@ -4,90 +4,73 @@ title: Your First Plugin
 
 # Your First Plugin
 
-A plugin is a WebAssembly component the kernel loads, plus a manifest that says what it is and what it needs. It
-takes about thirty minutes to get one running.
+Every Synra plugin includes a Rust/Wasm component. Choose a hybrid template when it also needs a page.
 
-This page goes from an empty directory to a plugin the kernel will install.
+## Prepare the toolchain
 
-## What you need
+Use the development toolchain required by the selected core revision, then install the module target
+and the author CLI. This example pins a reviewed SDK/CLI pair:
 
-| Tool | Why |
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install synra-plugin-cli --git https://github.com/synra-rs/synra-core.git --rev ffec0a2dd3833346bccc6f75bb49447c4e2cc9eb --locked
+```
+
+The Rust SDK is used from source. Do not depend on an assumed crates.io release.
+
+## Create a project
+
+```sh
+synra-plugin new @your-scope/hello-synra --template hybrid --dir hello-synra --title "Hello Synra"
+cd hello-synra
+```
+
+| Template | Contains |
 | --- | --- |
-| Rust | plugins are written in it |
-| the `wasm32-wasip2` target | it is what a plugin is compiled to |
-| `synra-plugin` | scaffolds, builds and checks a plugin |
+| `headless` | Rust component and manifest |
+| `hybrid` | The same component plus a UI bundle |
 
-```bash
-rustup target add wasm32-wasip2
-cargo install synra-plugin
+There is no UI-only template. Plugin ids use `@scope/name`; reserved scopes are refused.
+
+## Pin the SDK
+
+The scaffold writes a version dependency. Before building this development example, replace it
+with the same Git revision as the CLI:
+
+```toml
+[dependencies]
+synra-plugin-sdk = { git = "https://github.com/synra-rs/synra-core.git", rev = "ffec0a2dd3833346bccc6f75bb49447c4e2cc9eb" }
 ```
 
-## Scaffold it
+Commit Cargo.lock and use a matching host. The SDK's generated guest bindings supply the complete
+WIT world; keep the generated entry-point structure while adding your logic.
 
-```bash
-synra-plugin new @your-scope/hello-synra --title "Hello Synra"
-```
+## Build and verify
 
-The identifier is `@scope/name`. The scope is yours, and three are reserved: `synra`, `core` and `system`.
-Everything else — the directory name, the artifact name, the cache path — follows from it.
-
-::: info Why the identifier is validated before anything is written
-It appears in every path and in every capability string, so finding out later that it is malformed means a
-rename. The scaffold checks it the same way the kernel checks it at install, which means a plugin this tool
-writes is one that can install.
-:::
-
-`--template` chooses what you get:
-
-| Template | What it is |
-| --- | --- |
-| `headless` | WebAssembly only, no interface |
-| `hybrid` | both halves, sharing one manifest |
-
-## What you got
-
-```
-hello-synra/
-├─ manifest.json
-├─ Cargo.toml
-├─ src/lib.rs
-└─ README.md
-```
-
-`src/lib.rs` is where the plugin's behaviour goes. `manifest.json` says what that behaviour is. The two have to
-agree — see [The Manifest](/plugins/manifest) for which fields are checked against the code.
-
-## Build it
-
-```bash
+```sh
 synra-plugin build
-```
-
-That writes an installable `dist/` directory containing the manifest and `plugin.wasm`; a hybrid also includes `ui.zip`. The release profile is
-already tuned for size, because a plugin's size is what a user pays on every install.
-
-## Check it
-
-```bash
 synra-plugin verify --dir dist
 ```
 
-After building, verify `dist/` to check the actual component ABI, declared imports and optional UI ZIP. Missing or unreadable artifacts fail; imports are never silently skipped.
+Build compiles a module, encodes the component, packages optional UI assets and validates the actual
+package before replacing `dist/`. Raw Cargo output is not an installable component package.
 
-::: tip `verify` runs the checks the kernel runs at install
-It exists because an author can act on a failure here and cannot act on one at install time. A plugin that fails
-to install on a user's machine is one they will not try twice.
+::: tip Build the files you will install
+Verify the built `dist/`, not only the source manifest. A hybrid needs both `plugin.wasm` and a valid UI ZIP.
 :::
 
-## Try it
+## Install and open
 
-Copy the generated `dist/` package directory to a device running Synra and install from the folder. A plugin that is not in a
-registry installs from a directory, which is how a plugin is developed: edit, build, install, look.
+Install the built folder in Synra. Explicitly approve the plugin, grant the capabilities it needs,
+and enable it. An empty capability list still requires approval.
+Open a hybrid plugin from its management entry.
 
-## Where to go next
+Use the independent [Starter](https://github.com/synra-rs/synra-plugin-starter) and
+[Touchpad](https://github.com/synra-rs/synra-plugin-touchpad) repositories as concrete examples;
+each pins its own reviewed dependencies.
 
-- [Project Structure](/plugins/structure) — what each file is for.
-- [Writing the Logic](/plugins/authoring) — the Rust side.
-- [Building a UI](/plugins/ui) — if it needs to draw something.
-- [Testing](/plugins/testing) — what to check before publishing.
-- [Publishing](/plugins/publishing) — signing and what a user sees.
+## Next
+
+- [Project Structure](/plugins/structure).
+- [Writing the Logic](/plugins/authoring).
+- [Building a UI](/plugins/ui).

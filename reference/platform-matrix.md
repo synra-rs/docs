@@ -4,59 +4,47 @@ title: Platform Support
 
 # Platform Support
 
-Synra runs wherever the application shell runs. This page says which platforms those are, and how the
-differences between them show up rather than being flattened into a promise.
+Separate a build target, a host implementation and physical-device acceptance.
 
-## What ships
+## Application availability
 
-| Platform | Status |
+| Platform | Current evidence |
 | --- | --- |
-| Windows | supported |
-| macOS | supported |
-| Linux | supported |
-| Android | supported |
-| iOS | supported |
+| Windows | Desktop application built; WebView-based plugin hosting exercised |
+| Android ARM64 | APK built; native plugin Activity and return integration compiled |
+| Android compatibility environments | Require acceptance in the specific environment, including 卓易通 |
+| macOS and Linux | Desktop adapters exist; this workflow does not establish distributed application builds |
+| iOS | No installer or TestFlight distribution established by this workflow |
 
-The three desktop platforms differ in packaging and in where data lives, not in what the kernel does. See
-[Data Locations](/reference/paths) for the per-platform directories.
+A successful Android build does not prove every mobile system behavior.
+Keep the app in the foreground when using interactive cross-device features.
 
-## How a difference is reported
+## Native capabilities
 
-Some things a plugin may ask for do not exist on every platform. Simulating a keystroke does not exist on
-iOS; a notification facility may be absent on a headless Linux machine.
-
-::: info The kernel does not carry a table of platform abilities
-The application shell implements the platform layer, and the kernel asks it. That means the answer comes from
-the machine actually running rather than from a list compiled into the kernel — which is the only way it can
-be right for a Linux machine with no notification daemon.
-:::
-
-A call for something the machine cannot do fails with `unsupported`, and the action that would have been
-taken is not taken.
-
-::: warning `unsupported` is not a bug report
-It means the platform cannot do this, not that something went wrong. An interface that showed it as an error
-would be telling the user to retry something that will never work.
-:::
-
-## What is the same everywhere
-
-- **The wire protocol.** Two devices running different platforms interoperate, which is the point of having
-  one protocol rather than a per-platform one.
-- **The capability model.** A plugin's declaration means the same thing on every platform.
-- **The storage layout's shape.** The directories exist everywhere; only their parents differ.
-
-## Mobile
-
-Android and iOS are supported for the interface and for receiving transfers. Two differences are worth
-knowing before writing a plugin for them:
-
-| Difference | Consequence |
+| Capability | Current boundary |
 | --- | --- |
-| no always-on background process | a transfer may be interrupted by the system and resumed later |
-| a keystroke simulator does not exist | `platform:simulate-keys` reports `unsupported` |
+| Pointer-session receiver | Windows native backend; other receivers refuse unsupported control |
+| Desktop URL, path, notification and clipboard operations | Depend on the desktop adapter, installed tools and system policy |
+| Desktop command-based operations on mobile | Explicitly unsupported by the current command runner |
+| File transfer and plugin runtime | Shared core, with host integration and platform build requirements |
+| Background mobile reception | Subject to OS suspension; no always-on delivery guarantee |
 
-::: tip A plugin that works on desktop is not automatically a mobile plugin
-The kernel is the same, so a plugin that only listens for events needs no changes. A plugin that drives the
-desktop — sending keystrokes, revealing a file location — is one whose calls a mobile build will refuse.
-:::
+## Capability checks
+
+A plugin needs both a declared and approved capability, and an implementation on the current host.
+A paired device or an installed package does not create platform support.
+
+For pages, use `env.can`, `env.platformSupports` and `env.hostSupports` for their distinct questions.
+Handle an execution refusal even after a support check.
+
+## Unsupported operations
+
+An unsupported platform or API reports a structured refusal.
+Do not offer repeated retries as the only recovery for a missing implementation.
+Choose a supported receiving device or use another available plugin path.
+
+## Next
+
+- [Installation](/guide/installation).
+- [Capabilities](/reference/capabilities).
+- [Testing](/plugins/testing).

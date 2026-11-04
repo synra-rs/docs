@@ -32,7 +32,7 @@ const enSidebar = [
     text: 'Using Synra',
     items: [
       { text: 'Devices & Pairing', link: '/guide/devices-and-pairing' },
-      { text: 'Clipboard & Files', link: '/guide/transfers' },
+      { text: 'Tasks & Transfers', link: '/guide/transfers' },
       { text: 'Plugins', link: '/guide/plugins' },
       { text: 'Troubleshooting', link: '/guide/troubleshooting' },
     ],
@@ -46,7 +46,7 @@ const enSidebar = [
       { text: 'Writing the Logic', link: '/plugins/authoring' },
       { text: 'Building a UI', link: '/plugins/ui' },
       { text: 'Testing', link: '/plugins/testing' },
-      { text: 'Publishing', link: '/plugins/publishing' },
+      { text: 'Signing & Packaging', link: '/plugins/publishing' },
       { text: 'FAQ', link: '/plugins/faq' },
     ],
   },
@@ -54,7 +54,7 @@ const enSidebar = [
     text: 'Reference',
     items: [
       { text: 'Capabilities', link: '/reference/capabilities' },
-      { text: 'Built-in Events', link: '/reference/events' },
+      { text: 'Events', link: '/reference/events' },
       { text: 'Error Codes', link: '/reference/errors' },
       { text: 'Data Locations', link: '/reference/paths' },
       { text: 'Platform Support', link: '/reference/platform-matrix' },
@@ -75,7 +75,7 @@ const zhSidebar = [
     text: '使用',
     items: [
       { text: '设备与配对', link: '/zh/guide/devices-and-pairing' },
-      { text: '剪切板与文件', link: '/zh/guide/transfers' },
+      { text: '任务与传输', link: '/zh/guide/transfers' },
       { text: '插件', link: '/zh/guide/plugins' },
       { text: '故障排查', link: '/zh/guide/troubleshooting' },
     ],
@@ -89,7 +89,7 @@ const zhSidebar = [
       { text: '编写逻辑', link: '/zh/plugins/authoring' },
       { text: '编写界面', link: '/zh/plugins/ui' },
       { text: '测试', link: '/zh/plugins/testing' },
-      { text: '发布', link: '/zh/plugins/publishing' },
+      { text: '签名与打包', link: '/zh/plugins/publishing' },
       { text: '常见问题', link: '/zh/plugins/faq' },
     ],
   },
@@ -97,7 +97,7 @@ const zhSidebar = [
     text: '参考',
     items: [
       { text: '能力（Capability）', link: '/zh/reference/capabilities' },
-      { text: '内置事件', link: '/zh/reference/events' },
+      { text: '事件', link: '/zh/reference/events' },
       { text: '错误码', link: '/zh/reference/errors' },
       { text: '数据位置', link: '/zh/reference/paths' },
       { text: '平台支持', link: '/zh/reference/platform-matrix' },
@@ -151,11 +151,11 @@ export default defineConfig({
    * For `README.md` it is also a correctness fix: its relative links point at repository files
    * rather than routes, which fails the dead-link check.
    */
-  srcExclude: ['README.md', '.vitepress/writing-style.md'],
+  srcExclude: ['README.md', 'CONTRIBUTING.md', '.vitepress/writing-style.md'],
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
-    ['link', { rel: 'apple-touch-icon', href: '/brand-mark.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
+    ['link', { rel: 'apple-touch-icon', href: '/brand-mark.png' }],
     ['meta', { name: 'theme-color', content: '#0b0b0f' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'Synra' }],
@@ -180,7 +180,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/brand-mark.svg',
+    logo: '/brand-mark.png',
     siteTitle: 'Synra',
     socialLinks: [{ icon: 'github', link: 'https://github.com/synra-rs' }],
 
@@ -231,6 +231,14 @@ export default defineConfig({
       themeConfig: {
         nav: zhRepoNav,
         sidebar: zhSidebar,
+        sidebarMenuLabel: '菜单',
+        returnToTopLabel: '返回顶部',
+        langMenuLabel: '切换语言',
+        skipToContentLabel: '跳至正文',
+        darkModeSwitchLabel: '外观',
+        darkModeSwitchTitle: '切换深色主题',
+        lightModeSwitchTitle: '切换浅色主题',
+        lastUpdated: { text: '更新于' },
         editLink: { pattern: `${REPO}/edit/main/:path`, text: '在 GitHub 上编辑此页' },
         footer: {
           message: '基于 MIT 协议开源发布。',
